@@ -44,7 +44,7 @@ export class EnhancedChess {
         this.centerLinePreference = true; // New setting for center line strategy
         this.showVisualizations = true;
         this.lastPlayerMove = null;
-
+        this.pendingPromotion = null;
         // Opening knowledge depth by skill level
 
         // Opening knowledge depth by skill level - significantly increased for higher levels
@@ -67,7 +67,7 @@ export class EnhancedChess {
             5: { name: 'Advanced', depth: 1300, thinkTime: 3.5, mistakes: 0.07, accuracy: 93 },
             6: { name: 'Expert', depth: 1650, thinkTime: 6.5, mistakes: 0.05, accuracy: 95 },
             7: { name: 'Grandmaster', depth: 1900, thinkTime: 8.5, mistakes: 0.05, accuracy: 95 },
-            8: { name: 'World GM', depth: 2500, thinkTime: 10.0, mistakes: 0.01, accuracy: 100 }
+            8: { name: 'World GM', depth: 2500, thinkTime: 9.0, mistakes: 0.01, accuracy: 100 }
         };
 
         // Transposition awareness by skill level (0-1 scale)
@@ -1010,7 +1010,7 @@ export class EnhancedChess {
             (piece.color === 'black' && toRow === 7)
         )) {
             // Handle pawn promotion
-            this.handlePawnPromotion(fromRow, fromCol, toRow, toCol, capturedPiece);
+            this.showPromotionDialog(fromRow, fromCol, toRow, toCol, capturedPiece);
             return;
         }
 
@@ -1044,8 +1044,145 @@ export class EnhancedChess {
         // Update displays
         this.updateMoveHistory();
         this.updateScoreDisplay();
-        this.updateOpeningName(); // Add this line to update the opening name
+        this.updateOpeningName();
     }
+
+    // Show promotion dialog
+    showPromotionDialog(fromRow, fromCol, toRow, toCol, capturedPiece) {
+        // Create modal for promotion selection
+        const modal = document.createElement('div');
+        modal.id = 'promotion-dialog';
+        modal.className = 'promotion-modal';
+
+        const pieceColor = this.board[fromRow][fromCol].color;
+
+        modal.innerHTML = `
+        <div class="promotion-modal-content">
+            <h3>Choose a piece for promotion</h3>
+            <div class="promotion-options">
+                <div class="promotion-option" data-piece="queen">
+                    ${pieceColor === 'white' ? '♕' : '♛'}
+                </div>
+                <div class="promotion-option" data-piece="rook">
+                    ${pieceColor === 'white' ? '♖' : '♜'}
+                </div>
+                <div class="promotion-option" data-piece="bishop">
+                    ${pieceColor === 'white' ? '♗' : '♝'}
+                </div>
+                <div class="promotion-option" data-piece="knight">
+                    ${pieceColor === 'white' ? '♘' : '♞'}
+                </div>
+            </div>
+        </div>
+    `;
+
+        document.body.appendChild(modal);
+
+        // Store promotion data for later use
+        this.pendingPromotion = {
+            fromRow,
+            fromCol,
+            toRow,
+            toCol,
+            capturedPiece
+        };
+
+        // Add event listeners to promotion options
+        const options = modal.querySelectorAll('.promotion-option');
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                const pieceType = option.getAttribute('data-piece');
+                this.completePawnPromotion(pieceType);
+                modal.remove();
+            });
+        });
+    }
+
+    // Complete the pawn promotion with the selected piece
+    completePawnPromotion(promotionPiece) {
+        if (!this.pendingPromotion) return;
+
+        const { fromRow, fromCol, toRow, toCol, capturedPiece } = this.pendingPromotion;
+        const pawn = this.board[fromRow][fromCol];
+
+        // Create the promoted piece
+        const promotedPiece = {
+            type: promotionPiece,
+            color: pawn.color
+        };
+
+        // Record move for history with promotion notation
+        const files = 'abcdefgh';
+        const fromFile = files[fromCol];
+        const toSquare = files[toCol] + (8 - toRow);
+        let notation = '';
+
+        if (capturedPiece) {
+            notation = `${fromFile}x${toSquare}=${promotionPiece.charAt(0).toUpperCase()}`;
+        } else {
+            notation = `${toSquare}=${promotionPiece.charAt(0).toUpperCase()}`;
+        }
+
+        // Make the move with the promoted piece
+        this.board[toRow][toCol] = promotedPiece;
+        this.board[fromRow][fromCol] = null;
+
+        // Update scores for captures
+        if (capturedPiece) {
+            const points = this.pieceValues[capturedPiece.type] || 0;
+            if (pawn.color === 'white') {
+                this.whiteScore += points;
+            } else {
+                this.blackScore += points;
+            }
+        }
+
+        // Add bonus points for promotion
+        const promotionBonus = this.pieceValues[promotionPiece] - this.pieceValues['pawn'];
+        if (pawn.color === 'white') {
+            this.whiteScore += promotionBonus;
+        } else {
+            this.blackScore += promotionBonus;
+        }
+
+        // Add to move history
+        this.moveHistory.push({
+            from: { row: fromRow, col: fromCol },
+            to: { row: toRow, col: toCol },
+            piece: 'pawn',
+            promotion: promotionPiece,
+            captured: capturedPiece?.type,
+            notation: notation
+        });
+
+        // Clear pending promotion
+        this.pendingPromotion = null;
+
+        // Update displays
+        this.updateMoveHistory();
+        this.updateScoreDisplay();
+        this.renderBoard();
+
+        // Show notification
+        this.showNotification(`Pawn promoted to ${promotionPiece}!`, 2000);
+
+        // Switch turns
+        this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
+        this.updateGameStatus();
+
+        // Check for game over
+        if (this.isGameOver()) {
+            this.gameOver = true;
+            this.showGameOver(this.getGameOverMessage());
+            return;
+        }
+
+        // If playing against AI and it's AI's turn, make AI move
+        if (this.gameMode === 'ai' && this.currentPlayer === this.aiColor) {
+            setTimeout(() => this.makeAIMove(), 500);
+        }
+    }
+
 
     // Update the opening name display
     updateOpeningName() {
@@ -1067,69 +1204,7 @@ export class EnhancedChess {
         return this.isInCheck(color);
     }
 
-    // Implement pawn promotion
-    /**
-     * Handles pawn promotion by replacing the pawn with the selected piece.
-     * @param {number} row - The row of the pawn to promote
-     * @param {number} col - The column of the pawn to promote
-     * @param {string} pieceType - The type of piece to promote to ('queen', 'rook', 'bishop', 'knight')
-     */
-    handlePawnPromotion(row, col, pieceType) {
-        const pawn = this.board[row][col];
-        if (!pawn || pawn.type !== 'pawn') {
-            console.error('No pawn at the specified position');
-            return;
-        }
 
-        // Create the new piece
-        const newPiece = {
-            type: pieceType,
-            color: pawn.color,
-            hasMoved: true
-        };
-
-        // Replace the pawn with the new piece
-        this.board[row][col] = newPiece;
-
-        // Close the promotion dialog if it's open
-        const promotionDialog = document.getElementById('promotion-dialog');
-        if (promotionDialog) {
-            promotionDialog.style.display = 'none';
-        }
-
-        // Update the board display
-        this.renderBoard();
-
-        // Check if the promotion results in a check or checkmate
-        const opponentColor = pawn.color === 'white' ? 'black' : 'white';
-        const isCheck = this.isKingInCheck(opponentColor);
-        const isCheckmate = this.isCheckmate(opponentColor);
-        const isStalemate = this.isStalemate(opponentColor);
-
-        // Update game status
-        this.updateGameStatus();
-
-        // Handle game over conditions
-        if (isCheckmate) {
-            this.gameOver = true;
-            this.showGameOver(`${pawn.color === 'white' ? 'White' : 'Black'} wins by checkmate!`);
-        } else if (isStalemate) {
-            this.gameOver = true;
-            this.showGameOver('Game drawn by stalemate.');
-        } else if (isCheck) {
-            this.showNotification(`${opponentColor === 'white' ? 'White' : 'Black'} is in check!`, 2000);
-        }
-
-        // Switch turns if the game isn't over
-        if (!this.gameOver) {
-            this.currentPlayer = opponentColor;
-
-            // If playing against AI and it's AI's turn, make AI move
-            if (this.gameMode === 'ai' && this.currentPlayer === this.aiColor) {
-                setTimeout(() => this.makeAIMove(), 500);
-            }
-        }
-    }
 
     /**
      * Checks if the specified color is in checkmate.
@@ -1898,7 +1973,7 @@ export class EnhancedChess {
         }
     }
 
-    // Execute AI move
+    // Add this to the executeAIMove method
     executeAIMove(move) {
         // Clear thinking state
         this.aiThinking = false;
@@ -1906,8 +1981,53 @@ export class EnhancedChess {
         this.hideAITimer();
         this.updateThinkingStatus(false);
 
-        // Make the move
-        this.makeMove(move.from.row, move.from.col, move.to.row, move.to.col);
+        // Check if this is a pawn promotion move
+        const piece = this.board[move.from.row][move.from.col];
+        if (piece && piece.type === 'pawn' && (
+            (piece.color === 'white' && move.to.row === 0) ||
+            (piece.color === 'black' && move.to.row === 7)
+        )) {
+            // AI always promotes to queen
+            const capturedPiece = this.board[move.to.row][move.to.col];
+
+            // Create the promoted piece
+            const promotedPiece = {
+                type: 'queen',
+                color: piece.color
+            };
+
+            // Make the move with the promoted piece
+            this.board[move.to.row][move.to.col] = promotedPiece;
+            this.board[move.from.row][move.from.col] = null;
+
+            // Record move for history with promotion notation
+            const files = 'abcdefgh';
+            const fromFile = files[move.from.col];
+            const toSquare = files[move.to.col] + (8 - move.to.row);
+            let notation = '';
+
+            if (capturedPiece) {
+                notation = `${fromFile}x${toSquare}=Q`;
+            } else {
+                notation = `${toSquare}=Q`;
+            }
+
+            // Add to move history
+            this.moveHistory.push({
+                from: { row: move.from.row, col: move.from.col },
+                to: { row: move.to.row, col: move.to.col },
+                piece: 'pawn',
+                promotion: 'queen',
+                captured: capturedPiece?.type,
+                notation: notation
+            });
+
+            // Show notification
+            this.showNotification(`AI promoted pawn to queen!`, 2000);
+        } else {
+            // Regular move
+            this.makeMove(move.from.row, move.from.col, move.to.row, move.to.col);
+        }
 
         // Increment move counter
         this.moveCount++;
@@ -1921,7 +2041,7 @@ export class EnhancedChess {
         this.previousPositions.set(positionSignature, repetitionCount + 1);
 
         // Update opening name display
-        this.updateOpeningName(); // Add this line
+        this.updateOpeningName();
 
         // Occasionally change AI personality for more variety (10% chance after move 10)
         if (this.moveCount > 10 && Math.random() < 0.1) {
@@ -1952,6 +2072,7 @@ export class EnhancedChess {
             this.showGameOver(this.getGameOverMessage());
         }
     }
+
 
     // Update thinking status
     updateThinkingStatus(isThinking) {

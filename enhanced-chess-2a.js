@@ -1,8 +1,8 @@
 import AIPersonalityDisplay from './aipersonalitydisplay.js';
-import ChessQueue from './chess-queue.js';
+import ChessQueueSystem from './chessqueuesystem.js';
 import { EnhancedChess } from './enhancedchess.js';
 import { ChessMatchmaker } from './chessmatchmaker.js';
-import ChessChat from './chesschat.js';
+import { ChessChat } from './chesschat.js';
 import { ChessTutelage } from './chesstutelage.js';
 import { LearningEaseManager } from './learningeasemanager.js';
 import { MoveSequenceAnalyzer } from './movesequenceanalyzer.js';

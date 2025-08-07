@@ -17,7 +17,6 @@ export class ChessMatchmaker {
         return 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
-
     toggleSearch() {
         const button = document.getElementById('find-opponent');
         const status = document.getElementById('matchmaking-status');
@@ -193,17 +192,24 @@ export class ChessMatchmaker {
         }
     }
 
-    recordMove(move) {
-        if (!this.matchId) return;
+    recordMove(moveData) {
+        // Record a move for the opponent to see
+        if (!this.currentMatch) return;
 
-        const moveData = {
-            move: move,
+        // Create a move record with timestamp
+        const moveRecord = {
+            ...moveData,
             timestamp: Date.now(),
-            playerId: this.playerId
+            player: this.playerId
         };
 
-        localStorage.setItem('chess_move_' + this.matchId + '_' + this.playerId, JSON.stringify(moveData));
+        // Store the move in localStorage
+        const moveKey = `chess_move_${this.currentMatch.gameId}_${moveRecord.timestamp}`;
+        localStorage.setItem(moveKey, JSON.stringify(moveRecord));
+
+        console.log("Move recorded:", moveRecord);
     }
+
 
     handleOpponentDisconnect() {
         const status = document.getElementById('matchmaking-status');
@@ -225,32 +231,34 @@ export class ChessMatchmaker {
         }, 10000); // Give time for final messages/state to be seen
     }
 
+    /**
+     * End the current match
+     */
     endMatch(reason) {
-        if (!this.matchId) return;
-
-        // Update match status
-        const matchKey = 'chess_match_' + this.matchId;
-        const matchData = JSON.parse(localStorage.getItem(matchKey) || '{}');
-
-        matchData.status = 'ended';
-        matchData.result = reason;
-        matchData.endTime = Date.now();
-
-        localStorage.setItem(matchKey, JSON.stringify(matchData));
-
-        // Reset state
-        clearInterval(this.pollInterval);
-        this.isSearching = false;
+        // Stop polling
+        if (this.moveCheckInterval) {
+            clearInterval(this.moveCheckInterval);
+            this.moveCheckInterval = null;
+        }
 
         // Update UI
-        const button = document.getElementById('find-opponent');
-        button.textContent = 'Find Human Opponent';
+        document.getElementById('queue-status').textContent = `Game ended: ${reason}`;
+        document.getElementById('join-queue').style.display = 'inline-block';
+        document.getElementById('leave-queue').style.display = 'none';
+        document.getElementById('match-info').style.display = 'none';
 
-        // Clean up after a delay
-        setTimeout(() => {
-            this.cleanupMatchData();
-        }, 10000);
+        // Reset state
+        this.currentMatch = null;
+        this.processedMoves.clear();
+
+        // Switch back to AI mode if the chess game exists
+        if (window.chessGame && typeof window.chessGame.switchToAIMode === 'function') {
+            window.chessGame.switchToAIMode();
+        }
+
+        this.showNotification(`Game ended: ${reason}`, 3000);
     }
+
 
     cleanupMatchData() {
         if (!this.matchId) return;
