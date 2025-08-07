@@ -1,6 +1,6 @@
-
-import { EnhancedChess } from './enhancedchess.js';
-import { ChessMatchmaker } from './chessmatchmaker.js';
+/**
+ * ChessChat - Server-based chat system for multiplayer chess games
+ */
 class ChessChat {
   constructor(myId, opponentId, matchId) {
     this.myId = myId;
@@ -8,6 +8,13 @@ class ChessChat {
     this.matchId = matchId;
     this.lastCheckedTimestamp = Date.now();
     this.pollInterval = null;
+    this.processedMessages = new Set(); // Track processed messages to avoid duplicates
+    
+    console.log("ChessChat initialized with:", {
+      myId: this.myId,
+      opponentId: this.opponentId,
+      matchId: this.matchId
+    });
     
     this.createChatWindow();
     this.startPolling();
@@ -87,18 +94,39 @@ class ChessChat {
     if (!message) return;
     
     const timestamp = Date.now();
+    const messageId = `msg_${timestamp}_${Math.random().toString(36).substring(2, 9)}`;
+    
     const chatMessage = {
+      id: messageId,
       sender: this.myId,
       message: message,
       timestamp: timestamp
     };
     
-    // Add to my chat window
+    // Add to my chat window immediately
     this.addMessageToChat(chatMessage, true);
     
-    // Store in localStorage for the other player to see
-    const chatKey = `chess_chat_${this.matchId}_${timestamp}`;
-    localStorage.setItem(chatKey, JSON.stringify(chatMessage));
+    // Send to server
+    const formData = new FormData();
+    formData.append('game_id', this.matchId);
+    formData.append('player_id', this.myId);
+    formData.append('message', JSON.stringify(chatMessage));
+    
+    fetch('php/send_chat.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) {
+        console.error('Error sending chat message:', data.message);
+        this.addSystemMessage('Error sending message. Please try again.');
+      }
+    })
+    .catch(error => {
+      console.error('Error sending chat message:', error);
+      this.addSystemMessage('Network error. Please try again.');
+    });
     
     // Clear input
     input.value = '';
@@ -152,26 +180,46 @@ class ChessChat {
   }
   
   checkForNewMessages() {
-    // Get all localStorage keys
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      
-      // Check if it's a chat message for our match
-      if (key.startsWith(`chess_chat_${this.matchId}_`)) {
-        try {
-          const chatMessage = JSON.parse(localStorage.getItem(key));
-          
-          // If it's from the opponent and we haven't seen it yet
-          if (chatMessage.sender !== this.myId && chatMessage.timestamp > this.lastCheckedTimestamp) {
-            this.addMessageToChat(chatMessage, false);
-          }
-        } catch (e) {
-          console.error('Error parsing chat message:', e);
-        }
-      }
-    }
+    if (!this.matchId || !this.myId) return;
     
-    this.lastCheckedTimestamp = Date.now();
+    fetch(`php/get_chat.php?game_id=${this.matchId}&player_id=${this.myId}&last_timestamp=${this.lastCheckedTimestamp}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.messages && data.messages.length > 0) {
+          console.log("Received chat messages:", data.messages);
+          
+          // Process new messages
+          for (const messageData of data.messages) {
+            try {
+              const chatMessage = JSON.parse(messageData.message);
+              
+              // Skip if we've already processed this message or it's our own
+              if (chatMessage.sender === this.myId || 
+                  (chatMessage.id && this.processedMessages.has(chatMessage.id))) {
+                continue;
+              }
+              
+              // Add message to chat
+              this.addMessageToChat(chatMessage, false);
+              
+              // Mark as processed
+              if (chatMessage.id) {
+                this.processedMessages.add(chatMessage.id);
+              }
+              
+              // Update last checked timestamp
+              if (chatMessage.timestamp > this.lastCheckedTimestamp) {
+                this.lastCheckedTimestamp = chatMessage.timestamp;
+              }
+            } catch (e) {
+              console.error('Error processing chat message:', e);
+            }
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error checking for chat messages:', error);
+      });
   }
   
   resetChat() {
@@ -183,6 +231,7 @@ class ChessChat {
     
     // Reset timestamp
     this.lastCheckedTimestamp = Date.now();
+    this.processedMessages.clear();
     
     // Add system message
     this.addSystemMessage('Chat reset. New game started.');
@@ -201,31 +250,5 @@ class ChessChat {
   }
 }
 
-// Initialize everything when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize chess game
-  window.chessGame = new EnhancedChess();
-  
-  // Initialize matchmaking system
-  window.chessMatchmaker = new ChessMatchmaker();
-  
-  // Handle page unload to clean up
-  window.addEventListener('beforeunload', () => {
-    if (window.chessMatchmaker) {
-      window.chessMatchmaker.removeFromMatchmaking();
-    }
-  });
-  
-  // Listen for game-over events
-  document.addEventListener('game-over', (event) => {
-    if (window.chessMatchmaker) {
-      window.chessMatchmaker.handleGameEnd(event.detail.result);
-    }
-    
-    if (window.chessChat) {
-      window.chessChat.handleGameEnd(event.detail.result);
-    }
-  });
-});
-
-export default ChessChat;
+// Make ChessChat available globally
+window.ChessChat = ChessChat;

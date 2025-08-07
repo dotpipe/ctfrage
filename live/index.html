@@ -400,10 +400,29 @@
                     <canvas id="buckets-distribution-chart"></canvas>
                 </div>
             </div>
+
+            <!-- Make sure your matchmaking panel has this structure -->
+            <div class="matchmaking-panel">
+                <h3>Play Against Others</h3>
+                <div class="matchmaking-status" id="queue-status">Not in queue</div>
+                <div class="player-count">Players waiting: <span id="waiting-count">0</span></div>
+                <div class="matchmaking-controls">
+                    <button id="join-queue" class="btn primary">Join Waiting Queue</button>
+                    <button id="leave-queue" class="btn danger" style="display: none;">Leave Queue</button>
+                </div>
+                <div class="queue-position">
+                    Your position: <span id="queue-position">-</span>
+                </div>
+                <div class="match-info" id="match-info" style="display: none;">
+                    <div class="match-status">Playing against: <span id="opponent-name">-</span></div>
+                    <div class="match-color">You are playing as: <span id="player-color">-</span></div>
+                </div>
+            </div>
+
+
         </div>
 
         <script src="enhanced-chess-2a.js" type="module"></script>
-        <!-- <script src="chess-queue.js"></script> -->
 </body>
 
 </html>

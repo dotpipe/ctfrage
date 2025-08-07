@@ -1,3 +1,5 @@
+import { ChessMatchmaker } from './chessmatchmaker.js';
+
 /**
  * Chess Queue System
  * Manages player matchmaking and waiting queue
@@ -879,91 +881,228 @@ document.addEventListener('DOMContentLoaded', () => {
  * Enhance the chess game with multiplayer support
  */
 export function enhanceChessGameForMultiplayer() {
+    console.log("Enhancing chess game for multiplayer");
+    
+    if (!window.chessGame) {
+        console.error("Chess game not found! Will try again in 1 second.");
+        setTimeout(enhanceChessGameForMultiplayer, 1000);
+        return;
+    }
+    
     // Add human opponent initialization
-    window.chessGame.initializeHumanOpponent = function (myColor, matchId) {
+    window.chessGame.initializeHumanOpponent = function(myColor) {
+        console.log("Initializing human opponent mode with color:", myColor);
+        
         // Switch from AI to human opponent
         this.gameMode = 'human';
         this.humanColor = myColor;
         this.opponentColor = myColor === 'white' ? 'black' : 'white';
         this.currentPlayer = 'white'; // White always starts
-        this.matchId = matchId;
-
+        
+        // IMPORTANT: Disable AI completely
+        this.aiEnabled = false;
+        this.useAI = false;
+        
+        // If there's an AI move timer, clear it
+        if (this.aiMoveTimer) {
+            clearTimeout(this.aiMoveTimer);
+            this.aiMoveTimer = null;
+        }
+        
         // Reset the board
         this.setupBoard();
+        
+        // Set which player can move
+        this.playerCanMove = (myColor === 'white'); // Only white can move at the start
+        
+        // Update turn indicator
+        document.getElementById('turn-indicator').textContent = 
+            myColor === 'white' ? 'Your turn (white)' : 'Waiting for opponent (white)';
+        
+        // Render the board
         this.renderBoard();
-        this.updateGameStatus();
-
+        
         // Show notification
         this.showNotification(`Playing against human opponent. You are ${myColor}.`, 3000);
     };
-
-    // Continue from where we left off in chess-queue.js
-
+    
+    // Override the AI move function to do nothing in human vs human mode
+    const originalMakeAIMove = window.chessGame.makeAIMove;
+    window.chessGame.makeAIMove = function() {
+        if (this.gameMode === 'human') {
+            console.log("AI move attempted in human vs human mode - prevented");
+            return false;
+        }
+        
+        // Call original AI move function only if not in human vs human mode
+        return originalMakeAIMove.call(this);
+    };
+    
+    // Override any function that might trigger AI moves
+    if (window.chessGame.checkForAIMove) {
+        const originalCheckForAIMove = window.chessGame.checkForAIMove;
+        window.chessGame.checkForAIMove = function() {
+            if (this.gameMode === 'human') {
+                console.log("AI move check prevented in human vs human mode");
+                return;
+            }
+            
+            return originalCheckForAIMove.call(this);
+        };
+    }
+    
+    // Override the updateGameStatus function to prevent AI moves
+    if (window.chessGame.updateGameStatus) {
+        const originalUpdateGameStatus = window.chessGame.updateGameStatus;
+        window.chessGame.updateGameStatus = function() {
+            // Call original function
+            originalUpdateGameStatus.call(this);
+            
+            // If in human vs human mode, prevent any AI move scheduling
+            if (this.gameMode === 'human' && this.aiMoveTimer) {
+                console.log("Clearing scheduled AI move in human vs human mode");
+                clearTimeout(this.aiMoveTimer);
+                this.aiMoveTimer = null;
+            }
+        };
+    }
+    
     // Add method to process opponent moves
-    window.chessGame.processOpponentMove = function (moveData) {
-        // Process a move from the human opponent
-        const move = moveData.move;
-
-        // Make the move
-        if (move && move.from && move.to) {
-            this.makeMove(move.from.row, move.from.col, move.to.row, move.to.col);
-
-            // Update game state
+    window.chessGame.processOpponentMove = function(moveObj) {
+        console.log("Processing opponent move:", moveObj);
+        
+        // Make the move on the board
+        if (moveObj && moveObj.from && moveObj.to) {
+            // Get the piece at the from position
+            const fromRow = parseInt(moveObj.from.row);
+            const fromCol = parseInt(moveObj.from.col);
+            const toRow = parseInt(moveObj.to.row);
+            const toCol = parseInt(moveObj.to.col);
+            
+            console.log(`Moving piece from [${fromRow},${fromCol}] to [${toRow},${toCol}]`);
+            
+            // Make the move without checking whose turn it is
+            const piece = this.board[fromRow][fromCol];
+            if (!piece) {
+                console.error("No piece found at source position:", fromRow, fromCol);
+                return;
+            }
+            
+            // Move the piece
+            this.board[toRow][toCol] = piece;
+            this.board[fromRow][fromCol] = null;
+            
+            // Now it's the player's turn
+            this.playerCanMove = true;
             this.currentPlayer = this.humanColor;
+            
+            // Update turn indicator
+            document.getElementById('turn-indicator').textContent = `Your turn (${this.humanColor})`;
+            
+            // Render the board
             this.renderBoard();
+            
+            // Update game status WITHOUT triggering AI
+            const originalAiEnabled = this.aiEnabled;
+            const originalUseAI = this.useAI;
+            
+            this.aiEnabled = false;
+            this.useAI = false;
+            
             this.updateGameStatus();
-
+            
+            // Restore original AI settings (though they should remain disabled in human mode)
+            this.aiEnabled = originalAiEnabled;
+            this.useAI = originalUseAI;
+            
             // Check for game over
-            if (this.isGameOver()) {
-                this.gameOver = true;
-                const result = this.getGameOverMessage();
-                this.showGameOver(result);
-
-                // Notify queue system
-                if (window.chessQueue) {
-                    window.chessQueue.recordGameEnd(result);
-                }
+            if (typeof this.checkGameOver === 'function') {
+                this.checkGameOver();
             }
         }
     };
-
-    // Modify the handleSquareClick method to record moves for human opponents
+    
+    // Override the handleSquareClick method to check if player can move
     const originalHandleSquareClick = window.chessGame.handleSquareClick;
-    window.chessGame.handleSquareClick = function (row, col) {
+    window.chessGame.handleSquareClick = function(row, col) {
+        // In human vs human mode, check if it's this player's turn
+        if (this.gameMode === 'human') {
+            // Only allow moves if it's the player's turn
+            if (!this.playerCanMove) {
+                this.showNotification("It's not your turn", 2000);
+                return;
+            }
+            
+            // Check if the selected piece is the player's color
+            if (this.selectedSquare === null) {
+                const square = this.board[row][col];
+                if (square !== null) {
+                    const pieceIsWhite = square.isWhite || square.color === 'white';
+                    const playerIsWhite = this.humanColor === 'white';
+                    
+                    if (pieceIsWhite !== playerIsWhite) {
+                        this.showNotification("You can only move your own pieces", 2000);
+                        return;
+                    }
+                }
+            }
+        }
+        
         // Store the original selected square
         const originalSelectedSquare = this.selectedSquare;
-
+        
         // Call the original method
         originalHandleSquareClick.call(this, row, col);
-
+        
         // Check if a move was made (selected square was reset)
-        if (originalSelectedSquare && !this.selectedSquare && this.gameMode === 'human') {
+        if (this.gameMode === 'human' && originalSelectedSquare && !this.selectedSquare) {
+            console.log("Move detected from handleSquareClick");
+            
             // A move was made, record it for the opponent
             if (window.chessQueue) {
                 window.chessQueue.recordMove({
                     from: { row: originalSelectedSquare.row, col: originalSelectedSquare.col },
                     to: { row, col }
                 });
+                
+                // After making a move, it's the opponent's turn
+                this.playerCanMove = false;
+                
+                // Update turn indicator
+                document.getElementById('turn-indicator').textContent = 
+                    `Waiting for opponent (${this.opponentColor})`;
             }
         }
     };
-
-    // Add method to reset to AI opponent
-    window.chessGame.initializeAIOpponent = function () {
-        // Switch back to AI mode
+    
+    // Add a method to switch back to AI mode
+    window.chessGame.switchToAIMode = function() {
         this.gameMode = 'ai';
-        this.humanColor = 'white'; // Default to white against AI
-        this.aiColor = 'black';
+        this.aiEnabled = true;
+        this.useAI = true;
+        this.humanColor = 'white'; // Default when playing against AI
         this.currentPlayer = 'white';
-        this.matchId = null;
-
+        this.playerCanMove = true;
+        
         // Reset the board
         this.setupBoard();
         this.renderBoard();
         this.updateGameStatus();
-
-        // Show notification
-        this.showNotification('Playing against AI opponent', 3000);
+        
+        document.getElementById('turn-indicator').textContent = 'Your turn (white)';
     };
+    
+    // Add resign button functionality
+    const resignButton = document.getElementById('resign-button');
+    if (resignButton) {
+        resignButton.addEventListener('click', () => {
+            if (window.chessQueue && window.chessQueue.currentMatch) {
+                window.chessQueue.resignGame();
+            }
+        });
+    }
+    
+    console.log("Chess game successfully enhanced for multiplayer");
 }
 
+export default ChessMatchmaker;

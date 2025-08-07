@@ -2,7 +2,7 @@
  * Chess Advice Box with Automatic Dialog Flow
  * A chess tutor that responds to your moves and guides you through the game
  */
-class ChessAdviceBox {
+export class ChessAdviceBox {
   constructor(chessGame) {
     this.chessGame = chessGame;
     this.isOpen = false;

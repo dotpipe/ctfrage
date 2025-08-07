@@ -1,5 +1,5 @@
 // AI Personality Display System with Modal
-export class AIPersonalityDisplay {
+class AIPersonalityDisplay {
     constructor(chessGame) {
         this.chessGame = chessGame;
 
@@ -1206,3 +1206,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 500);
 });
+
+export default AIPersonalityDisplay;

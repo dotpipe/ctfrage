@@ -1,5 +1,7 @@
+
+import { ChessTutelage } from './chesstutelage.js';
 // Class for recognizing and naming move sequences
-class MoveSequenceRecognizer {
+export class MoveSequenceAnalyzer {
     constructor(chessGame) {
         this.chessGame = chessGame;
 
@@ -346,8 +348,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Initialize the tutelage system
             window.chessTutelage = new ChessTutelage(window.chessGame);
 
-            // Initialize the sequence recognizer
-            window.sequenceRecognizer = new MoveSequenceRecognizer(window.chessGame);
+            // Initialize the sequence Analyzer
+            window.sequenceAnalyzer = new MoveSequenceAnalyzer(window.chessGame);
 
             console.log("Chess Tutelage System initialized");
 
@@ -357,13 +359,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Call original method
                 originalUpdateMoveHistory.call(this);
 
-                // If we have a move history and sequence recognizer
-                if (this.moveHistory && this.moveHistory.length > 0 && window.sequenceRecognizer) {
+                // If we have a move history and sequence Analyzer
+                if (this.moveHistory && this.moveHistory.length > 0 && window.sequenceAnalyzer) {
                     // Get the last move
                     const lastMove = this.moveHistory[this.moveHistory.length - 1];
 
-                    // Add to sequence recognizer
-                    const recognizedSequence = window.sequenceRecognizer.addMove(lastMove);
+                    // Add to sequence Analyzer
+                    const recognizedSequence = window.sequenceAnalyzer.addMove(lastMove);
 
                     // If a sequence was recognized, show notification
                     if (recognizedSequence) {

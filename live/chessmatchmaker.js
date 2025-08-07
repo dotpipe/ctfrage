@@ -17,7 +17,6 @@ export class ChessMatchmaker {
         return 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
-
     toggleSearch() {
         const button = document.getElementById('find-opponent');
         const status = document.getElementById('matchmaking-status');
@@ -225,32 +224,34 @@ export class ChessMatchmaker {
         }, 10000); // Give time for final messages/state to be seen
     }
 
-    endMatch(reason) {
-        if (!this.matchId) return;
-
-        // Update match status
-        const matchKey = 'chess_match_' + this.matchId;
-        const matchData = JSON.parse(localStorage.getItem(matchKey) || '{}');
-
-        matchData.status = 'ended';
-        matchData.result = reason;
-        matchData.endTime = Date.now();
-
-        localStorage.setItem(matchKey, JSON.stringify(matchData));
-
-        // Reset state
-        clearInterval(this.pollInterval);
-        this.isSearching = false;
-
-        // Update UI
-        const button = document.getElementById('find-opponent');
-        button.textContent = 'Find Human Opponent';
-
-        // Clean up after a delay
-        setTimeout(() => {
-            this.cleanupMatchData();
-        }, 10000);
+/**
+ * End the current match
+ */
+endMatch(reason) {
+    // Stop polling
+    if (this.moveCheckInterval) {
+        clearInterval(this.moveCheckInterval);
+        this.moveCheckInterval = null;
     }
+
+    // Update UI
+    document.getElementById('queue-status').textContent = `Game ended: ${reason}`;
+    document.getElementById('join-queue').style.display = 'inline-block';
+    document.getElementById('leave-queue').style.display = 'none';
+    document.getElementById('match-info').style.display = 'none';
+
+    // Reset state
+    this.currentMatch = null;
+    this.processedMoves.clear();
+    
+    // Switch back to AI mode if the chess game exists
+    if (window.chessGame && typeof window.chessGame.switchToAIMode === 'function') {
+        window.chessGame.switchToAIMode();
+    }
+    
+    this.showNotification(`Game ended: ${reason}`, 3000);
+}
+
 
     cleanupMatchData() {
         if (!this.matchId) return;
