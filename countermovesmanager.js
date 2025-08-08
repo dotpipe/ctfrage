@@ -8,6 +8,29 @@ export class CounterMovesManager {
         this.setupEventListeners();
     }
 
+    // In countermovesmanager.js, add a method to sync with learning settings:
+syncWithLearningSettings() {
+    // Get learning ease settings if available
+    if (window.learningEaseManager) {
+        this.learningEnabled = window.learningEaseManager.learningEnabled;
+        this.learningRate = window.learningEaseManager.getLearningLevel() / 8; // Convert 1-8 scale to 0-1
+    }
+}
+
+// Then modify the addCounterMove method:
+addCounterMove() {
+    // Existing code...
+    
+    // Apply learning rate if enabled
+    this.syncWithLearningSettings();
+    if (!this.learningEnabled) {
+        this.showSuccessMessage('Learning is disabled. Counter move not saved.');
+        return;
+    }
+    
+    // Rest of your existing code...
+}
+
     /**
      * Load counter moves from localStorage
      */

@@ -1098,92 +1098,6 @@ export class EnhancedChess {
         });
     }
 
-    // Complete the pawn promotion with the selected piece
-    completePawnPromotion(promotionPiece) {
-        if (!this.pendingPromotion) return;
-
-        const { fromRow, fromCol, toRow, toCol, capturedPiece } = this.pendingPromotion;
-        const pawn = this.board[fromRow][fromCol];
-
-        // Create the promoted piece
-        const promotedPiece = {
-            type: promotionPiece,
-            color: pawn.color
-        };
-
-        // Record move for history with promotion notation
-        const files = 'abcdefgh';
-        const fromFile = files[fromCol];
-        const toSquare = files[toCol] + (8 - toRow);
-        let notation = '';
-
-        if (capturedPiece) {
-            notation = `${fromFile}x${toSquare}=${promotionPiece.charAt(0).toUpperCase()}`;
-        } else {
-            notation = `${toSquare}=${promotionPiece.charAt(0).toUpperCase()}`;
-        }
-
-        // Make the move with the promoted piece
-        this.board[toRow][toCol] = promotedPiece;
-        this.board[fromRow][fromCol] = null;
-
-        // Update scores for captures
-        if (capturedPiece) {
-            const points = this.pieceValues[capturedPiece.type] || 0;
-            if (pawn.color === 'white') {
-                this.whiteScore += points;
-            } else {
-                this.blackScore += points;
-            }
-        }
-
-        // Add bonus points for promotion
-        const promotionBonus = this.pieceValues[promotionPiece] - this.pieceValues['pawn'];
-        if (pawn.color === 'white') {
-            this.whiteScore += promotionBonus;
-        } else {
-            this.blackScore += promotionBonus;
-        }
-
-        // Add to move history
-        this.moveHistory.push({
-            from: { row: fromRow, col: fromCol },
-            to: { row: toRow, col: toCol },
-            piece: 'pawn',
-            promotion: promotionPiece,
-            captured: capturedPiece?.type,
-            notation: notation
-        });
-
-        // Clear pending promotion
-        this.pendingPromotion = null;
-
-        // Update displays
-        this.updateMoveHistory();
-        this.updateScoreDisplay();
-        this.renderBoard();
-
-        // Show notification
-        this.showNotification(`Pawn promoted to ${promotionPiece}!`, 2000);
-
-        // Switch turns
-        this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
-        this.updateGameStatus();
-
-        // Check for game over
-        if (this.isGameOver()) {
-            this.gameOver = true;
-            this.showGameOver(this.getGameOverMessage());
-            return;
-        }
-
-        // If playing against AI and it's AI's turn, make AI move
-        if (this.gameMode === 'ai' && this.currentPlayer === this.aiColor) {
-            setTimeout(() => this.makeAIMove(), 500);
-        }
-    }
-
-
     // Update the opening name display
     updateOpeningName() {
         const openingNameElement = document.getElementById('openingName');
@@ -1203,8 +1117,6 @@ export class EnhancedChess {
     isKingInCheck(color) {
         return this.isInCheck(color);
     }
-
-
 
     /**
      * Checks if the specified color is in checkmate.
@@ -1253,67 +1165,91 @@ export class EnhancedChess {
     }
 
     // Complete the pawn promotion with the selected piece
-    completePawnPromotion(fromRow, fromCol, toRow, toCol, promotionPiece, capturedPiece) {
-        const pawn = this.board[fromRow][fromCol];
+// In enhancedchess.js, fix the completePawnPromotion method:
+completePawnPromotion(promotionPiece) {
+    if (!this.pendingPromotion) return;
 
-        // Create the promoted piece
-        const promotedPiece = {
-            type: promotionPiece,
-            color: pawn.color
-        };
+    const { fromRow, fromCol, toRow, toCol, capturedPiece } = this.pendingPromotion;
+    const pawn = this.board[fromRow][fromCol];
 
-        // Record move for history with promotion notation
-        const files = 'abcdefgh';
-        const fromFile = files[fromCol];
-        const toSquare = files[toCol] + (8 - toRow);
-        let notation = '';
+    // Create the promoted piece
+    const promotedPiece = {
+        type: promotionPiece,
+        color: pawn.color
+    };
 
-        if (capturedPiece) {
-            notation = `${fromFile}x${toSquare}=${promotionPiece.charAt(0).toUpperCase()}`;
-        } else {
-            notation = `${toSquare}=${promotionPiece.charAt(0).toUpperCase()}`;
-        }
+    // Record move for history with promotion notation
+    const files = 'abcdefgh';
+    const fromFile = files[fromCol];
+    const toSquare = files[toCol] + (8 - toRow);
+    let notation = '';
 
-        // Make the move with the promoted piece
-        this.board[toRow][toCol] = promotedPiece;
-        this.board[fromRow][fromCol] = null;
-
-        // Update scores for captures
-        if (capturedPiece) {
-            const points = this.pieceValues[capturedPiece.type] || 0;
-            if (pawn.color === 'white') {
-                this.whiteScore += points;
-            } else {
-                this.blackScore += points;
-            }
-        }
-
-        // Add bonus points for promotion
-        const promotionBonus = this.pieceValues[promotionPiece] - this.pieceValues['pawn'];
-        if (pawn.color === 'white') {
-            this.whiteScore += promotionBonus;
-        } else {
-            this.blackScore += promotionBonus;
-        }
-
-        // Add to move history
-        this.moveHistory.push({
-            from: { row: fromRow, col: fromCol },
-            to: { row: toRow, col: toCol },
-            piece: 'pawn',
-            promotion: promotionPiece,
-            captured: capturedPiece?.type,
-            notation: notation
-        });
-
-        // Update display
-        this.updateMoveHistory();
-        this.updateScoreDisplay();
-        this.renderBoard();
-
-        // Show notification
-        this.showNotification(`Pawn promoted to ${promotionPiece}!`, 2000);
+    if (capturedPiece) {
+        notation = `${fromFile}x${toSquare}=${promotionPiece.charAt(0).toUpperCase()}`;
+    } else {
+        notation = `${toSquare}=${promotionPiece.charAt(0).toUpperCase()}`;
     }
+
+    // Make the move with the promoted piece
+    this.board[toRow][toCol] = promotedPiece;
+    this.board[fromRow][fromCol] = null;
+
+    // Update scores for captures
+    if (capturedPiece) {
+        const points = this.pieceValues[capturedPiece.type] || 0;
+        if (pawn.color === 'white') {
+            this.whiteScore += points;
+        } else {
+            this.blackScore += points;
+        }
+    }
+
+    // Add bonus points for promotion
+    const promotionBonus = this.pieceValues[promotionPiece] - this.pieceValues['pawn'];
+    if (pawn.color === 'white') {
+        this.whiteScore += promotionBonus;
+    } else {
+        this.blackScore += promotionBonus;
+    }
+
+    // Add to move history
+    this.moveHistory.push({
+        from: { row: fromRow, col: fromCol },
+        to: { row: toRow, col: toCol },
+        piece: 'pawn',
+        promotion: promotionPiece,
+        captured: capturedPiece?.type,
+        notation: notation
+    });
+
+    // Clear pending promotion
+    this.pendingPromotion = null;
+
+    // Update displays
+    this.updateMoveHistory();
+    this.updateScoreDisplay();
+    this.renderBoard();
+
+    // Show notification
+    this.showNotification(`Pawn promoted to ${promotionPiece}!`, 2000);
+
+    // Switch turns
+    this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
+    this.updateGameStatus();
+
+    // Check for game over
+    if (this.isGameOver()) {
+        this.gameOver = true;
+        this.showGameOver(this.getGameOverMessage());
+        return;
+    }
+
+    // If playing against AI and it's AI's turn, make AI move
+    if (this.gameMode === 'ai' && this.currentPlayer === this.aiColor) {
+        setTimeout(() => this.makeAIMove(), 500);
+    }
+}
+
 
     // Check if a move is valid
     isValidMove(fromRow, fromCol, toRow, toCol) {
@@ -5298,4 +5234,33 @@ export function setupAdditionalEventListeners() {
             analyzePositionForPieceChart(depths);
         });
     }
+
+    const newGameBtn = document.getElementById('new-game');
+    if (newGameBtn) {
+        newGameBtn.addEventListener('click', () => {
+            // Reset game state completely
+            this.gameOver = false;
+            this.currentPlayer = 'white';
+            this.selectedSquare = null;
+            this.moveCount = 0;
+            this.moveHistory = [];
+            this.previousPositions = new Map();
+            
+            // Reset the board
+            this.setupBoard();
+            this.renderBoard();
+            this.updateGameStatus();
+            this.updateScoreDisplay();
+            this.updateMoveHistory();
+            
+            // Reset AI thinking state
+            this.aiThinking = false;
+            this.aiThinkingMoves = [];
+            
+            // Show notification
+            this.showNotification('New game started!', 2000);
+        });
+    }
+    
+
 }

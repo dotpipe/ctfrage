@@ -1,0 +1,2144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess ARN - Comprehensive Learning System</title>
+    <style>
+        /* Same CSS as before */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 20px;
+        }
+        
+        .board-container {
+            flex: 1;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        .stats-container {
+            flex: 1;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .simple-board {
+            width: 100%;
+            aspect-ratio: 1/1;
+            max-width: 400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 2px;
+            border: 2px solid #333;
+            background-color: #ddd;
+        }
+        
+        .square {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .square.light {
+            background-color: #f0d9b5;
+        }
+        
+        .square.dark {
+            background-color: #b58863;
+        }
+        
+        .piece {
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            position: relative;
+        }
+        
+        .piece.white {
+            background-color: #fff;
+            border: 2px solid #333;
+        }
+        
+        .piece.black {
+            background-color: #333;
+            border: 2px solid #000;
+        }
+        
+        .piece::after {
+            content: attr(data-piece);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .piece.white::after {
+            color: #333;
+        }
+        
+        .piece.black::after {
+            color: #fff;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button.success {
+            background-color: #2ecc71;
+        }
+        
+        button.success:hover {
+            background-color: #27ae60;
+        }
+        
+        button.warning {
+            background-color: #f39c12;
+        }
+        
+        button.warning:hover {
+            background-color: #e67e22;
+        }
+        
+        button.danger {
+            background-color: #e74c3c;
+        }
+        
+        button.danger:hover {
+            background-color: #c0392b;
+        }
+        
+        select, input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #3498db;
+            width: 0%;
+            transition: width 0.5s;
+        }
+        
+        .log-container {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            flex-grow: 1;
+        }
+        
+        .log-entry {
+            margin: 0;
+            padding: 2px 0;
+            border-bottom: 1px solid #34495e;
+        }
+        
+        .log-timestamp {
+            color: #95a5a6;
+            margin-right: 5px;
+        }
+        
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .thinking-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #3498db;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.5; }
+        }
+        
+        .thinking-text {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .game-info {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .turn-indicator {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .turn-indicator.white {
+            color: #2c3e50;
+        }
+        
+        .turn-indicator.black {
+            color: #34495e;
+        }
+        
+        .move-history {
+            height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            padding: 5px;
+            margin-top: 10px;
+        }
+        
+        .breakthrough-list {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .breakthrough-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .breakthrough-item h4 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+        }
+        
+        .breakthrough-level {
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .speed-label {
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        
+        .exploration-slider {
+            margin-top: 15px;
+        }
+        
+        .exploration-slider label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .exploration-slider input {
+            width: 100%;
+        }
+        
+        .exploration-value {
+            text-align: center;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        
+        .exploration-description {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Chess ARN - Comprehensive Learning System</h1>
+    
+    <div class="container">
+        <div class="board-container">
+            <h2>Game Board</h2>
+            
+            <div class="simple-board" id="chess-board">
+                <!-- Board will be generated by JavaScript -->
+            </div>
+            
+            <div class="game-info">
+                <div class="turn-indicator white" id="turn-indicator">White to move</div>
+                <div id="game-status">Game in progress</div>
+                <div class="move-history" id="move-history"></div>
+            </div>
+            
+            <div class="controls">
+                <button id="start-learning" class="success">Start Learning</button>
+                <button id="pause-learning" class="warning">Pause</button>
+                <button id="stop-learning" class="danger">Stop</button>
+                <button id="single-move" class="warning">Make Single Move</button>
+                
+                <div class="speed-control">
+                    <span class="speed-label">Speed:</span>
+                    <select id="game-speed">
+                        <option value="1000">Slow</option>
+                        <option value="300">Normal</option>
+                        <option value="50" selected>Fast</option>
+                        <option value="10">Ultra Fast</option>
+                        <option value="0">Instant</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="exploration-slider">
+                <label for="exploration-rate">Exploration Strategy: <span id="exploration-value">50% - Balanced Learning</span></label>
+                <input type="range" id="exploration-rate" min="0" max="100" value="50">
+                <div class="exploration-value">
+                    <span>Shoot to Kill</span>
+                    <span style="float:right">Total Exploration</span>
+                </div>
+                <div class="exploration-description" id="exploration-description">
+                    Balances finding the best moves with exploring new possibilities.
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-container">
+            <h2>Learning Statistics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Games Played</div>
+                    <div class="stat-value" id="games-played">0</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">Positions Learned</div>
+                    <div class="stat-value" id="positions-learned">0</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">Unique Moves Tried</div>
+                    <div class="stat-value" id="unique-moves">0</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">Position Coverage</div>
+                    <div class="stat-value" id="position-coverage">0%</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">White Wins</div>
+                    <div class="stat-value" id="white-wins">0</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">Black Wins</div>
+                    <div class="stat-value" id="black-wins">0</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">Exploration Level</div>
+                    <div class="stat-value" id="exploration-level">50%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="exploration-progress" style="width: 50%;"></div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">Learning Depth</div>
+                    <div class="stat-value" id="learning-depth">0</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="learning-progress" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <h3>Recent Discoveries</h3>
+            <div class="breakthrough-list" id="breakthrough-list">
+                <!-- Breakthroughs will be added here -->
+            </div>
+            
+            <div class="thinking-indicator hidden" id="thinking-indicator">
+                <div class="thinking-dot"></div>
+                <div class="thinking-dot" style="animation-delay: 0.2s;"></div>
+                <div class="thinking-dot" style="animation-delay: 0.4s;"></div>
+                <div class="thinking-text">ARN is learning...</div>
+            </div>
+            
+            <div class="log-container" id="log-container">
+                <!-- Log entries will appear here -->
+                <div class="log-entry"><span class="log-timestamp">[00:00:00]</span> Chess ARN initialized</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        /**
+         * Simple Chess Game Implementation
+         */
+        class SimpleChess {
+            constructor() {
+                this.board = this.createEmptyBoard();
+                this.currentPlayer = 'white';
+                this.gameOver = false;
+                this.checkmateColor = null;
+                this.moveHistory = [];
+                
+                // Initialize the board
+                this.setupBoard();
+                
+                // Piece values for evaluation
+                this.pieceValues = {
+                    'p': 100,   // pawn
+                    'n': 320,   // knight
+                    'b': 330,   // bishop
+                    'r': 500,   // rook
+                    'q': 900,   // queen
+                    'k': 20000  // king
+                };
+                
+                console.log("SimpleChess initialized");
+            }
+            
+            /**
+             * Create an empty board
+             */
+            createEmptyBoard() {
+                const board = [];
+                for (let i = 0; i < 8; i++) {
+                    board[i] = Array(8).fill(null);
+                }
+                return board;
+            }
+            
+            /**
+             * Set up the initial board position
+             */
+            setupBoard() {
+                // Reset the board
+                this.board = this.createEmptyBoard();
+                
+                // Set up pawns
+                for (let col = 0; col < 8; col++) {
+                    this.board[1][col] = { type: 'p', color: 'black' };
+                    this.board[6][col] = { type: 'p', color: 'white' };
+                }
+                
+                // Set up other pieces
+                const backRowPieces = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
+                
+                for (let col = 0; col < 8; col++) {
+                    this.board[0][col] = { type: backRowPieces[col], color: 'black' };
+                    this.board[7][col] = { type: backRowPieces[col], color: 'white' };
+                }
+                
+                // Reset game state
+                this.currentPlayer = 'white';
+                this.gameOver = false;
+                this.checkmateColor = null;
+                this.moveHistory = [];
+                
+                // Render the board
+                this.renderBoard();
+                this.updateGameStatus();
+                
+                console.log("Board setup complete");
+            }
+            
+            /**
+             * Render the board on the page
+             */
+            renderBoard() {
+                const boardElement = document.getElementById('chess-board');
+                if (!boardElement) {
+                    console.error("Chess board element not found");
+                    return;
+                }
+                
+                // Clear the board
+                boardElement.innerHTML = '';
+                
+                // Create squares and pieces
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const square = document.createElement('div');
+                        square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+                        square.dataset.row = row;
+                        square.dataset.col = col;
+                        
+                        const piece = this.board[row][col];
+                        if (piece) {
+                            const pieceElement = document.createElement('div');
+                            pieceElement.className = `piece ${piece.color}`;
+                            pieceElement.dataset.piece = this.getPieceSymbol(piece.type);
+                            square.appendChild(pieceElement);
+                        }
+                        
+                        boardElement.appendChild(square);
+                    }
+                }
+            }
+            
+            /**
+             * Get the symbol for a piece type
+             */
+            getPieceSymbol(type) {
+                const symbols = {
+                    'p': '♟',
+                    'r': '♜',
+                    'n': '♞',
+                    'b': '♝',
+                    'q': '♛',
+                    'k': '♚'
+                };
+                return symbols[type] || '';
+            }
+            
+            /**
+             * Update the game status display
+             */
+            updateGameStatus() {
+                const turnIndicator = document.getElementById('turn-indicator');
+                const gameStatus = document.getElementById('game-status');
+                
+                if (turnIndicator) {
+                    turnIndicator.textContent = `${this.currentPlayer.charAt(0).toUpperCase() + this.currentPlayer.slice(1)} to move`;
+                    turnIndicator.className = `turn-indicator ${this.currentPlayer}`;
+                }
+                
+                if (gameStatus) {
+                    if (this.gameOver) {
+                        if (this.checkmateColor) {
+                            const winner = this.checkmateColor === 'white' ? 'Black' : 'White';
+                            gameStatus.textContent = `Game over. ${winner} wins by checkmate.`;
+                        } else {
+                            gameStatus.textContent = 'Game over. Draw.';
+                        }
+                    } else {
+                        gameStatus.textContent = 'Game in progress';
+                    }
+                }
+            }
+            
+            /**
+             * Execute a move
+             */
+            executeMove(move) {
+                console.log("Executing move:", move);
+                
+                // Get the piece
+                const piece = this.board[move.from.row][move.from.col];
+                if (!piece || piece.color !== this.currentPlayer) {
+                    console.error("Invalid move: No piece or wrong color", move, piece);
+                    return false;
+                }
+                
+                // Move the piece
+                this.board[move.to.row][move.to.col] = piece;
+                this.board[move.from.row][move.from.col] = null;
+                
+                // Record the move
+                const moveNotation = this.getMoveNotation(move);
+                this.moveHistory.push(moveNotation);
+                
+                // Update move history display
+                this.updateMoveHistory();
+                
+                // Check for game over conditions
+                this.checkGameOver();
+                
+                // Switch player
+                this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
+                
+                // Update the display
+                this.renderBoard();
+                this.updateGameStatus();
+                
+                return true;
+            }
+            
+            /**
+             * Update the move history display
+             */
+            updateMoveHistory() {
+                const historyElement = document.getElementById('move-history');
+                if (!historyElement) return;
+                
+                let historyText = '';
+                for (let i = 0; i < this.moveHistory.length; i += 2) {
+                    const moveNumber = Math.floor(i / 2) + 1;
+                    const whiteMove = this.moveHistory[i];
+                    const blackMove = i + 1 < this.moveHistory.length ? this.moveHistory[i + 1] : '';
+                    
+                    historyText += `${moveNumber}. ${whiteMove} ${blackMove} `;
+                }
+                
+                historyElement.textContent = historyText;
+                historyElement.scrollTop = historyElement.scrollHeight;
+            }
+            
+            /**
+             * Check if the game is over
+             */
+            checkGameOver() {
+                // For simplicity, we'll just check if a king is missing
+                let whiteKing = false;
+                let blackKing = false;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece && piece.type === 'k') {
+                            if (piece.color === 'white') whiteKing = true;
+                            if (piece.color === 'black') blackKing = true;
+                        }
+                    }
+                }
+                
+                if (!whiteKing) {
+                    this.gameOver = true;
+                    this.checkmateColor = 'white';
+                } else if (!blackKing) {
+                    this.gameOver = true;
+                    this.checkmateColor = 'black';
+                }
+                
+                // Check for stalemate (simplified)
+                const nextPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
+                if (this.getAllPossibleMoves(nextPlayer).length === 0) {
+                    this.gameOver = true;
+                }
+                
+                // Also end game after 100 moves to prevent infinite games
+                if (this.moveHistory.length >= 200) {
+                    this.gameOver = true;
+                }
+            }
+            
+            /**
+             * Get all possible moves for a player
+             */
+            getAllPossibleMoves(color) {
+                const moves = [];
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece && piece.color === color) {
+                            const pieceMoves = this.getPossibleMovesForPiece(row, col);
+                            moves.push(...pieceMoves);
+                        }
+                    }
+                }
+                
+                return moves;
+            }
+            
+            /**
+             * Get possible moves for a piece
+             */
+            getPossibleMovesForPiece(row, col) {
+                const piece = this.board[row][col];
+                if (!piece) return [];
+                
+                const moves = [];
+                
+                // For simplicity, we'll just generate some basic moves
+                // In a real chess implementation, this would be much more complex
+                
+                // Pawns
+                if (piece.type === 'p') {
+                    const direction = piece.color === 'white' ? -1 : 1;
+                    
+                    // Move forward one square
+                    if (this.isValidSquare(row + direction, col) && !this.board[row + direction][col]) {
+                        moves.push({
+                            from: { row, col },
+                            to: { row: row + direction, col }
+                        });
+                    }
+                    
+                    // Capture diagonally
+                    for (let colOffset of [-1, 1]) {
+                        const newCol = col + colOffset;
+                        if (this.isValidSquare(row + direction, newCol)) {
+                            const targetPiece = this.board[row + direction][newCol];
+                            if (targetPiece && targetPiece.color !== piece.color) {
+                                moves.push({
+                                    from: { row, col },
+                                    to: { row: row + direction, col: newCol }
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                // Knights
+                if (piece.type === 'n') {
+                    const knightMoves = [
+                        { row: row - 2, col: col - 1 },
+                        { row: row - 2, col: col + 1 },
+                        { row: row - 1, col: col - 2 },
+                        { row: row - 1, col: col + 2 },
+                        { row: row + 1, col: col - 2 },
+                        { row: row + 1, col: col + 2 },
+                        { row: row + 2, col: col - 1 },
+                        { row: row + 2, col: col + 1 }
+                    ];
+                    
+                    for (const move of knightMoves) {
+                        if (this.isValidSquare(move.row, move.col)) {
+                            const targetPiece = this.board[move.row][move.col];
+                            if (!targetPiece || targetPiece.color !== piece.color) {
+                                moves.push({
+                                    from: { row, col },
+                                    to: { row: move.row, col: move.col }
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                // For other pieces, we'll just allow them to move to any empty square or capture
+                // This is not real chess logic, just a simplified version for demonstration
+                if (['r', 'b', 'q', 'k'].includes(piece.type)) {
+                    // Get all squares within a certain distance
+                    const maxDistance = piece.type === 'k' ? 1 : 7;
+                    
+                    // Directions: horizontal, vertical, diagonal
+                    const directions = [];
+                    
+                    if (['r', 'q', 'k'].includes(piece.type)) {
+                        // Horizontal and vertical
+                        directions.push({ row: 0, col: 1 });
+                        directions.push({ row: 0, col: -1 });
+                        directions.push({ row: 1, col: 0 });
+                        directions.push({ row: -1, col: 0 });
+                    }
+                    
+                    if (['b', 'q', 'k'].includes(piece.type)) {
+                        // Diagonal
+                        directions.push({ row: 1, col: 1 });
+                        directions.push({ row: 1, col: -1 });
+                        directions.push({ row: -1, col: 1 });
+                        directions.push({ row: -1, col: -1 });
+                    }
+                    
+                    for (const dir of directions) {
+                        for (let distance = 1; distance <= maxDistance; distance++) {
+                            const newRow = row + dir.row * distance;
+                            const newCol = col + dir.col * distance;
+                            
+                            if (!this.isValidSquare(newRow, newCol)) break;
+                            
+                            const targetPiece = this.board[newRow][newCol];
+                            
+                            if (!targetPiece) {
+                                // Empty square, can move here
+                                moves.push({
+                                    from: { row, col },
+                                    to: { row: newRow, col: newCol }
+                                });
+                            } else {
+                                // Occupied square
+                                if (targetPiece.color !== piece.color) {
+                                    // Can capture
+                                    moves.push({
+                                        from: { row, col },
+                                        to: { row: newRow, col: newCol }
+                                    });
+                                }
+                                break; // Can't move further in this direction
+                            }
+                        }
+                    }
+                }
+                
+                return moves;
+            }
+            
+            /**
+             * Check if a square is valid (on the board)
+             */
+            isValidSquare(row, col) {
+                return row >= 0 && row < 8 && col >= 0 && col < 8;
+            }
+            
+            /**
+             * Get the FEN notation for the current position
+             */
+            getPositionFEN() {
+                let fen = '';
+                
+                // Board position
+                for (let row = 0; row < 8; row++) {
+                    let emptyCount = 0;
+                    
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        
+                        if (piece) {
+                            if (emptyCount > 0) {
+                                fen += emptyCount;
+                                emptyCount = 0;
+                            }
+                            
+                            let pieceChar = piece.type;
+                            if (piece.color === 'white') {
+                                pieceChar = pieceChar.toUpperCase();
+                            }
+                            
+                            fen += pieceChar;
+                        } else {
+                            emptyCount++;
+                        }
+                    }
+                    
+                    if (emptyCount > 0) {
+                        fen += emptyCount;
+                    }
+                    
+                    if (row < 7) {
+                        fen += '/';
+                    }
+                }
+                
+                // Active color
+                fen += ` ${this.currentPlayer.charAt(0)}`;
+                
+                // Simplified FEN (omitting castling, en passant, etc.)
+                fen += ' - - 0 1';
+                
+                return fen;
+            }
+            
+            /**
+             * Convert a move to notation
+             */
+            getMoveNotation(move) {
+                const files = 'abcdefgh';
+                const fromFile = files[move.from.col];
+                const fromRank = 8 - move.from.row;
+                const toFile = files[move.to.col];
+                const toRank = 8 - move.to.row;
+                
+                return `${fromFile}${fromRank}${toFile}${toRank}`;
+            }
+            
+            /**
+             * Parse move notation into a move object
+             */
+            parseNotation(notation) {
+                if (notation.length !== 4) return null;
+                
+                const files = 'abcdefgh';
+                const fromCol = files.indexOf(notation[0]);
+                const fromRow = 8 - parseInt(notation[1]);
+                const toCol = files.indexOf(notation[2]);
+                const toRow = 8 - parseInt(notation[3]);
+                
+                if (fromCol < 0 || fromRow < 0 || toCol < 0 || toRow < 0) return null;
+                if (fromCol > 7 || fromRow > 7 || toCol > 7 || toRow > 7) return null;
+                
+                return {
+                    from: { row: fromRow, col: fromCol },
+                    to: { row: toRow, col: toCol }
+                };
+            }
+            
+            /**
+             * Evaluate the current position
+             */
+            evaluatePosition() {
+                let score = 0;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece) {
+                            const value = this.pieceValues[piece.type] || 0;
+                            score += piece.color === 'white' ? value : -value;
+                        }
+                    }
+                }
+                
+                return score;
+            }
+            
+            /**
+             * Check if a player is in check
+             */
+            isInCheck(color) {
+                // Find the king
+                let kingRow = -1;
+                let kingCol = -1;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece && piece.type === 'k' && piece.color === color) {
+                            kingRow = row;
+                            kingCol = col;
+                            break;
+                        }
+                    }
+                    if (kingRow !== -1) break;
+                }
+                
+                if (kingRow === -1) return false; // No king found
+                
+                // Check if any opponent piece can capture the king
+                const opponentColor = color === 'white' ? 'black' : 'white';
+                const opponentMoves = this.getAllPossibleMoves(opponentColor);
+                
+                return opponentMoves.some(move => 
+                    move.to.row === kingRow && move.to.col === kingCol
+                );
+            }
+            
+            /**
+             * Execute an AI move
+             */
+            executeAIMove(move) {
+                console.log("Executing AI move:", move);
+                return this.executeMove(move);
+            }
+        }
+        
+        /**
+         * Enhanced Chess ARN (Adaptive Recursive Network) Implementation
+         * Focused on comprehensive exploration of the move space
+         */
+        class ChessARN {
+            constructor(options = {}) {
+                // Configuration
+                this.options = {
+                    gameDelay: 50,          // Milliseconds between moves
+                    maxGames: 10000,        // Maximum number of games to play
+                    saveInterval: 10,       // Save knowledge every X games
+                    logMoves: true,         // Whether to log each move
+                    ...options
+                };
+                
+                // State
+                this.isRunning = false;
+                this.isPaused = false;
+                this.gameCount = 0;
+                this.moveCount = 0;
+                this.gameInterval = null;
+                this.startTime = null;
+                this.learningDepth = 0;
+                
+                // Exploration parameters
+                this.explorationRate = 0.5;  // 0-1, how often to try new moves vs. best known moves
+                this.explorationPhase = 'balanced'; // 'aggressive', 'balanced', 'conservative', 'mastery'
+                this.noveltyBonus = 100;     // Bonus for trying new moves
+                this.positionVisitCounts = {}; // How many times we've seen each position
+                this.explorationProgress = 0;  // 0-100, how much of the space we've explored
+                
+                // Statistics
+                this.stats = {
+                    whiteWins: 0,
+                    blackWins: 0,
+                    draws: 0,
+                    discoveries: [],
+                    uniqueMoves: new Set(),
+                    uniquePositions: new Set(),
+                    explorationMilestones: []
+                };
+                
+                // Knowledge base
+                this.moveDatabase = {};
+                this.positionDatabase = {};
+                this.openingBook = {};
+                
+                // Load existing knowledge if available
+                this.loadKnowledge();
+                
+                // Calculate initial exploration progress
+                this.updateExplorationProgress();
+                
+                console.log("ChessARN initialized");
+            }
+            
+            /**
+             * Update exploration progress based on knowledge
+             */
+            updateExplorationProgress() {
+                // Calculate based on unique positions and moves
+                const uniquePositions = this.stats.uniquePositions.size;
+                const uniqueMoves = this.stats.uniqueMoves.size;
+                
+                // Estimate total possible positions in early/mid game (very rough estimate)
+                // Chess has approximately 10^43 legal positions, but we'll use a much smaller
+                // number for practical progress tracking
+                const estimatedTotalPositions = 100000;
+                
+                // Calculate progress as a percentage (capped at 100%)
+                const rawProgress = (uniquePositions / estimatedTotalPositions) * 100;
+                this.explorationProgress = Math.min(100, rawProgress);
+                
+                // Update exploration phase based on progress
+                if (this.explorationProgress < 25) {
+                    this.explorationPhase = 'aggressive'; // Early exploration
+                } else if (this.explorationProgress < 50) {
+                    this.explorationPhase = 'balanced';   // Mid exploration
+                } else if (this.explorationProgress < 75) {
+                    this.explorationPhase = 'conservative'; // Late exploration
+                } else {
+                    this.explorationPhase = 'mastery';    // Mastery phase
+                }
+                
+                // Record milestone if we've crossed a threshold
+                const milestones = [1, 5, 10, 25, 50, 75, 90, 95, 99, 100];
+                for (const milestone of milestones) {
+                    if (this.explorationProgress >= milestone && 
+                        !this.stats.explorationMilestones.includes(milestone)) {
+                        this.stats.explorationMilestones.push(milestone);
+                        this.log(`MILESTONE: Reached ${milestone}% exploration of the chess space!`);
+                    }
+                }
+            }
+            
+            /**
+             * Start the self-learning process
+             */
+            start() {
+                if (this.isRunning && !this.isPaused) return;
+                
+                // If paused, resume
+                if (this.isPaused) {
+                    this.isPaused = false;
+                    this.log('Learning resumed');
+                    this.gameInterval = setInterval(() => this.playNextMove(), this.options.gameDelay);
+                    document.getElementById('thinking-indicator').classList.remove('hidden');
+                    return;
+                }
+                
+                this.isRunning = true;
+                this.startTime = Date.now();
+                
+                // Reset the game if it's over
+                if (window.chessGame.gameOver) {
+                    window.chessGame.setupBoard();
+                }
+                
+                this.log('Starting comprehensive learning process...');
+                
+                // Show thinking indicator
+                document.getElementById('thinking-indicator').classList.remove('hidden');
+                
+                // Start the game interval
+                this.gameInterval = setInterval(() => this.playNextMove(), this.options.gameDelay);
+                
+                // Update UI
+                this.updateUI();
+            }
+            
+            /**
+             * Pause the self-learning process
+             */
+            pause() {
+                if (!this.isRunning || this.isPaused) return;
+                
+                this.isPaused = true;
+                
+                // Clear the interval
+                if (this.gameInterval) {
+                    clearInterval(this.gameInterval);
+                    this.gameInterval = null;
+                }
+                
+                // Hide thinking indicator
+                document.getElementById('thinking-indicator').classList.add('hidden');
+                
+                this.log('Learning paused');
+            }
+            
+            /**
+             * Stop the self-learning process
+             */
+            stop() {
+                if (!this.isRunning) return;
+                
+                this.isRunning = false;
+                this.isPaused = false;
+                
+                // Clear the interval
+                if (this.gameInterval) {
+                    clearInterval(this.gameInterval);
+                    this.gameInterval = null;
+                }
+                
+                // Hide thinking indicator
+                document.getElementById('thinking-indicator').classList.add('hidden');
+                
+                // Calculate duration
+                const duration = Math.round((Date.now() - this.startTime) / 1000);
+                
+                this.log(`Self-learning stopped after ${duration} seconds`);
+                this.log(`Learned ${Object.keys(this.moveDatabase).length} positions, tried ${this.stats.uniqueMoves.size} unique moves`);
+                
+                // Save knowledge
+                this.saveKnowledge();
+                
+                // Update UI
+                this.updateUI();
+            }
+            
+            /**
+             * Make a single move (for debugging)
+             */
+            makeSingleMove() {
+                this.playNextMove();
+            }
+            
+            /**
+             * Play the next move in the self-learning process
+             */
+            playNextMove() {
+                // Check if game is over
+                if (window.chessGame.gameOver) {
+                    this.handleGameOver();
+                    return;
+                }
+                
+                // Get current player and position
+                const currentPlayer = window.chessGame.currentPlayer;
+                const position = window.chessGame.getPositionFEN();
+                
+                // Track position visit
+                this.trackPositionVisit(position);
+                
+                // Get best move based on exploration strategy
+                const move = this.getExploratoryMove(position, currentPlayer);
+                
+                if (move) {
+                    // Record the position and move
+                    this.recordMove(position, move, currentPlayer);
+                    
+                    // Execute the move
+                    const success = window.chessGame.executeAIMove(move);
+                    
+                    if (!success) {
+                        this.log(`Error: Failed to execute move ${this.getMoveNotation(move)}`);
+                        return;
+                    }
+                    
+                    // Check for discoveries
+                    this.checkForDiscovery(position, move, currentPlayer);
+                    
+                    // Track unique moves
+                    const moveNotation = this.getMoveNotation(move);
+                    this.stats.uniqueMoves.add(moveNotation);
+                    
+                    this.moveCount++;
+                    
+                    // Log move if enabled
+                    if (this.options.logMoves) {
+                        this.log(`Move ${this.moveCount}: ${currentPlayer} plays ${moveNotation}`, true);
+                    }
+                } else {
+                    // No valid move found, this shouldn't happen but handle it anyway
+                    this.log(`Error: No valid move found for ${currentPlayer}`);
+                    window.chessGame.gameOver = true;
+                }
+            }
+            
+            /**
+             * Track how many times we've visited a position
+             */
+            trackPositionVisit(position) {
+                if (!this.positionVisitCounts[position]) {
+                    this.positionVisitCounts[position] = 0;
+                }
+                this.positionVisitCounts[position]++;
+            }
+            
+            /**
+             * Handle game over
+             */
+            handleGameOver() {
+                this.gameCount++;
+                
+                // Determine winner
+                let winner = null;
+                if (window.chessGame.checkmateColor === 'white') {
+                    winner = 'black';
+                    this.stats.blackWins++;
+                } else if (window.chessGame.checkmateColor === 'black') {
+                    winner = 'white';
+                    this.stats.whiteWins++;
+                } else {
+                    this.stats.draws++;
+                }
+                
+                // Update move ratings based on game result
+                this.updateMoveRatings(winner);
+                
+                // Log result
+                this.log(`Game ${this.gameCount} complete. Winner: ${winner || 'Draw'}`);
+                
+                // Save knowledge periodically
+                if (this.gameCount % this.options.saveInterval === 0) {
+                    this.saveKnowledge();
+                    this.log(`Knowledge saved after ${this.gameCount} games`);
+                }
+                
+                // Update learning depth based on game complexity
+                this.updateLearningDepth();
+                
+                // Update UI
+                this.updateUI();
+                
+                // Check if we've reached the maximum number of games
+                if (this.gameCount >= this.options.maxGames) {
+                    this.log(`Reached maximum of ${this.options.maxGames} games. Self-learning stopped.`);
+                    this.stop();
+                    return;
+                }
+                
+                // Reset for next game
+                this.moveCount = 0;
+                window.chessGame.setupBoard();
+            }
+            
+            /**
+             * Update learning depth based on game complexity
+             */
+            updateLearningDepth() {
+                // Increase learning depth based on unique positions explored
+                const uniquePositions = this.stats.uniquePositions.size;
+                this.learningDepth = Math.floor(Math.log(uniquePositions) / Math.log(10));
+                
+                // Cap at 10
+                this.learningDepth = Math.min(10, Math.max(1, this.learningDepth));
+            }
+            
+            /**
+             * Get a move based on exploration strategy
+             */
+            getExploratoryMove(position, player) {
+                // Get all legal moves
+                const legalMoves = window.chessGame.getAllPossibleMoves(player);
+                if (!legalMoves || legalMoves.length === 0) {
+                    console.error("No legal moves found for", player);
+                    return null;
+                }
+                
+                console.log(`Found ${legalMoves.length} legal moves for ${player}`);
+                
+                // If only one move is available, just return it
+                if (legalMoves.length === 1) {
+                    return legalMoves[0];
+                }
+                
+                // Adjust exploration rate based on user setting and phase
+                let effectiveExplorationRate = this.explorationRate;
+                
+                // If user sets 0% exploration, we're in "shoot to kill" mode
+                if (this.explorationRate === 0) {
+                    return this.getBestKnownMove(legalMoves, position, player);
+                }
+                
+                // If user sets 100% exploration, we're in "try everything" mode
+                // which eventually leads to "quitting" as we've seen everything
+                if (this.explorationRate === 1) {
+                    // If we've explored almost everything, simulate "quitting"
+                    if (this.explorationProgress > 95) {
+                        this.log("Exploration complete! System has explored nearly all possibilities.");
+                        if (Math.random() < 0.1) { // 10% chance to actually quit
+                            this.stop();
+                            return legalMoves[0]; // Return any move as we're stopping anyway
+                        }
+                    }
+                    return this.getMostNovelMove(legalMoves, position);
+                }
+                
+                // Decide whether to explore or exploit based on effective rate
+                const shouldExplore = Math.random() < effectiveExplorationRate;
+                
+                if (shouldExplore) {
+                    // EXPLORE: Try moves we haven't tried much before
+                    return this.getExploratoryMoveByPhase(legalMoves, position, player);
+                } else {
+                    // EXPLOIT: Use the best move we know
+                    return this.getBestKnownMove(legalMoves, position, player);
+                }
+            }
+            
+            /**
+             * Get an exploratory move based on current phase
+             */
+            getExploratoryMoveByPhase(legalMoves, position, player) {
+                switch (this.explorationPhase) {
+                    case 'aggressive':
+                        // In aggressive exploration, strongly prefer completely new moves
+                        return this.getMostNovelMove(legalMoves, position);
+                        
+                    case 'balanced':
+                        // In balanced exploration, mix novelty with some evaluation
+                        return this.getBalancedMove(legalMoves, position, player);
+                        
+                    case 'conservative':
+                        // In conservative exploration, prefer reasonable but less-played moves
+                        return this.getConservativeExploratoryMove(legalMoves, position, player);
+                        
+                    case 'mastery':
+                        // In mastery phase, focus on refining knowledge of good moves
+                        return this.getRefinementMove(legalMoves, position, player);
+                        
+                    default:
+                        return this.getBalancedMove(legalMoves, position, player);
+                }
+            }
+            
+            /**
+             * Get the most novel (least played) move
+             */
+            getMostNovelMove(legalMoves, position) {
+                // Calculate novelty scores for each move
+                const movesWithNovelty = legalMoves.map(move => {
+                    const moveNotation = this.getMoveNotation(move);
+                    const moveKey = `${position}|${moveNotation}`;
+                    const timesPlayed = this.moveDatabase[moveKey]?.timesPlayed || 0;
+                    
+                    // Higher score for less played moves
+                    const noveltyScore = this.noveltyBonus / (1 + timesPlayed);
+                    
+                    return {
+                        move,
+                        noveltyScore,
+                        timesPlayed
+                    };
+                });
+                
+                // Sort by novelty (highest first)
+                movesWithNovelty.sort((a, b) => b.noveltyScore - a.noveltyScore);
+                
+                // Prefer completely new moves
+                const untriedMoves = movesWithNovelty.filter(m => m.timesPlayed === 0);
+                if (untriedMoves.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * untriedMoves.length);
+                    return untriedMoves[randomIndex].move;
+                }
+                
+                // Otherwise pick the least played move
+                return movesWithNovelty[0].move;
+            }
+            
+            /**
+             * Get a balanced move (mix of novelty and quality)
+             */
+            getBalancedMove(legalMoves, position, player) {
+                // Calculate combined scores for each move
+                const movesWithScores = legalMoves.map(move => {
+                    const moveNotation = this.getMoveNotation(move);
+                    const moveKey = `${position}|${moveNotation}`;
+                    const moveData = this.moveDatabase[moveKey];
+                    const timesPlayed = moveData?.timesPlayed || 0;
+                    
+                    // Base score is a combination of rating and novelty
+                    let score = moveData?.rating || 1200;
+                    
+                    // Add novelty bonus (inversely proportional to times played)
+                    score += (this.noveltyBonus / (1 + timesPlayed));
+                    
+                    // Add a small evaluation component
+                    score += this.evaluateMove(move, player) / 10;
+                    
+                    return {
+                        move,
+                        score,
+                        timesPlayed
+                    };
+                });
+                
+                // Sort by score (highest first)
+                movesWithScores.sort((a, b) => b.score - a.score);
+                
+                // Pick from top 3 with some randomness
+                const topN = Math.min(3, movesWithScores.length);
+                const randomIndex = Math.floor(Math.random() * topN);
+                return movesWithScores[randomIndex].move;
+            }
+            
+            /**
+             * Get a conservative exploratory move (reasonable but less-played)
+             */
+            getConservativeExploratoryMove(legalMoves, position, player) {
+                // First evaluate all moves
+                const evaluatedMoves = legalMoves.map(move => ({
+                    move,
+                    score: this.evaluateMove(move, player),
+                    timesPlayed: this.getMovePlayCount(position, move)
+                }));
+                
+                // Sort by evaluation score (best first)
+                evaluatedMoves.sort((a, b) => b.score - a.score);
+                
+                // Take the top half of moves by evaluation
+                const topHalf = evaluatedMoves.slice(0, Math.max(1, Math.floor(evaluatedMoves.length / 2)));
+                
+                // From those, pick the least played
+                topHalf.sort((a, b) => a.timesPlayed - b.timesPlayed);
+                
+                return topHalf[0].move;
+            }
+            
+            /**
+             * Get a refinement move (focus on promising but under-explored lines)
+             */
+            getRefinementMove(legalMoves, position, player) {
+                // Calculate scores that favor promising but under-explored moves
+                const movesWithScores = legalMoves.map(move => {
+                    const moveNotation = this.getMoveNotation(move);
+                    const moveKey = `${position}|${moveNotation}`;
+                    const moveData = this.moveDatabase[moveKey];
+                    const timesPlayed = moveData?.timesPlayed || 0;
+                    const rating = moveData?.rating || 1200;
+                    
+                    // For refinement, we want high-rated moves that still need more exploration
+                    // This formula gives higher scores to good moves with fewer plays
+                    let score = rating * (1 - (1 / (1 + Math.sqrt(timesPlayed))));
+                    
+                    return {
+                        move,
+                        score,
+                        rating,
+                        timesPlayed
+                    };
+                });
+                
+                // Sort by score (highest first)
+                movesWithScores.sort((a, b) => b.score - a.score);
+                
+                // Pick from top 3
+                const topN = Math.min(3, movesWithScores.length);
+                const randomIndex = Math.floor(Math.random() * topN);
+                return movesWithScores[randomIndex].move;
+            }
+            
+            /**
+             * Get the best known move (pure exploitation)
+             */
+            getBestKnownMove(legalMoves, position, player) {
+                // Calculate strength scores for each move
+                const movesWithScores = legalMoves.map(move => {
+                    const moveNotation = this.getMoveNotation(move);
+                    const moveKey = `${position}|${moveNotation}`;
+                    const moveData = this.moveDatabase[moveKey];
+                    
+                    // If we have data on this move, use its rating
+                    let score = moveData?.rating || 1200;
+                    
+                    // Add evaluation component
+                    score += this.evaluateMove(move, player);
+                    
+                    return {
+                        move,
+                        score
+                    };
+                });
+                
+                // Sort by score (highest first)
+                movesWithScores.sort((a, b) => b.score - a.score);
+                
+                // Pick the best move with a small chance of picking 2nd best
+                const randomFactor = Math.random();
+                if (randomFactor < 0.05 && movesWithScores.length > 1) {
+                    // 5% chance to pick 2nd best
+                    return movesWithScores[1].move;
+                } else {
+                    // 95% chance to pick the best
+                    return movesWithScores[0].move;
+                }
+            }
+            
+            /**
+             * Get the number of times a move has been played
+             */
+            getMovePlayCount(position, move) {
+                const moveNotation = this.getMoveNotation(move);
+                const moveKey = `${position}|${moveNotation}`;
+                return this.moveDatabase[moveKey]?.timesPlayed || 0;
+            }
+            
+            /**
+             * Set the exploration rate with meaningful description
+             */
+            setExplorationRate(rate) {
+                this.explorationRate = Math.max(0, Math.min(1, rate));
+                
+                // Update UI with meaningful description
+                let description;
+                if (rate === 0) {
+                    description = "Shoot to Kill (No Exploration)";
+                } else if (rate < 0.2) {
+                    description = "Tournament Mode (Minimal Exploration)";
+                } else if (rate < 0.4) {
+                    description = "Competitive (Low Exploration)";
+                } else if (rate < 0.6) {
+                    description = "Balanced Learning";
+                } else if (rate < 0.8) {
+                    description = "Curious Explorer";
+                } else if (rate < 1) {
+                    description = "Wild Experimenter";
+                } else {
+                    description = "Total Exploration (Will Eventually Quit)";
+                }
+                
+                document.getElementById('exploration-value').textContent = `${Math.round(this.explorationRate * 100)}% - ${description}`;
+                this.updateUI();
+            }
+            
+            /**
+             * Record a move in the database
+             */
+            recordMove(position, move, player) {
+                const moveNotation = this.getMoveNotation(move);
+                const moveKey = `${position}|${moveNotation}`;
+                
+                // Track unique positions
+                this.stats.uniquePositions.add(position);
+                
+                // Track unique moves
+                this.stats.uniqueMoves.add(moveNotation);
+                
+                // Initialize move in database if needed
+                if (!this.moveDatabase[moveKey]) {
+                    this.moveDatabase[moveKey] = {
+                        position,
+                        move: moveNotation,
+                        player,
+                        rating: 1200,
+                        wins: 0,
+                        losses: 0,
+                        draws: 0,
+                        timesPlayed: 0,
+                        lastPlayed: Date.now()
+                    };
+                }
+                
+                // Update times played
+                this.moveDatabase[moveKey].timesPlayed++;
+                this.moveDatabase[moveKey].lastPlayed = Date.now();
+                
+                // Initialize position in database if needed
+                if (!this.positionDatabase[position]) {
+                    this.positionDatabase[position] = {
+                        moves: {},
+                        timesVisited: 0,
+                        firstSeen: Date.now()
+                    };
+                }
+                
+                // Update position database
+                this.positionDatabase[position].timesVisited++;
+                if (!this.positionDatabase[position].moves[moveNotation]) {
+                    this.positionDatabase[position].moves[moveNotation] = 0;
+                }
+                this.positionDatabase[position].moves[moveNotation]++;
+                
+                // Update exploration progress periodically
+                if (this.moveCount % 10 === 0) {
+                    this.updateExplorationProgress();
+                }
+            }
+            
+            /**
+             * Check for discoveries (interesting moves)
+             */
+            checkForDiscovery(position, move, player) {
+                // Get evaluation before the move
+                const beforeEval = window.chessGame.evaluatePosition();
+                
+                // Make temporary move
+                const piece = window.chessGame.board[move.from.row][move.from.col];
+                const targetPiece = window.chessGame.board[move.to.row][move.to.col];
+                
+                window.chessGame.board[move.to.row][move.to.col] = piece;
+                window.chessGame.board[move.from.row][move.from.col] = null;
+                
+                // Get evaluation after the move
+                const afterEval = window.chessGame.evaluatePosition();
+                
+                // Restore board
+                window.chessGame.board[move.from.row][move.from.col] = piece;
+                window.chessGame.board[move.to.row][move.to.col] = targetPiece;
+                
+                // Calculate evaluation change
+                const evalChange = player === 'white' ? afterEval - beforeEval : beforeEval - afterEval;
+                
+                // Check if this is a significant discovery
+                if (evalChange >= 200 || (targetPiece && targetPiece.type === 'q')) {
+                    // Record discovery
+                    const moveNotation = this.getMoveNotation(move);
+                    const discovery = {
+                        position,
+                        move: moveNotation,
+                        player,
+                        evalChange,
+                        gameNumber: this.gameCount,
+                        timestamp: Date.now(),
+                        type: targetPiece ? 'capture' : 'positional'
+                    };
+                    
+                    // Add to discoveries list
+                    this.stats.discoveries.push(discovery);
+                    
+                    // Log discovery
+                    this.log(`DISCOVERY: ${player} found a ${discovery.type} move with ${Math.round(evalChange)} evaluation change`);
+                    
+                    // Add to UI
+                    this.addDiscoveryToUI(player, evalChange, moveNotation, discovery.type);
+                }
+            }
+            
+            /**
+             * Add a discovery to the UI
+             */
+            addDiscoveryToUI(player, evalChange, moveNotation, type) {
+                const container = document.getElementById('breakthrough-list');
+                if (!container) return;
+                
+                const item = document.createElement('div');
+                item.className = 'breakthrough-item';
+                
+                item.innerHTML = `
+                    <h4>${player.toUpperCase()} ${type} <span class="breakthrough-level">Game ${this.gameCount}</span></h4>
+                    <p>Evaluation change: ${Math.round(evalChange)}</p>
+                    <p>Move: ${moveNotation}</p>
+                `;
+                
+                // Add to container (at the beginning)
+                if (container.firstChild) {
+                    container.insertBefore(item, container.firstChild);
+                } else {
+                    container.appendChild(item);
+                }
+                
+                // Limit list to 10 items
+                while (container.children.length > 10) {
+                    container.removeChild(container.lastChild);
+                }
+            }
+            
+            /**
+             * Update move ratings based on game result
+             */
+            updateMoveRatings(winner) {
+                const K = 32; // K-factor for rating adjustments
+                
+                // Get all moves from this game
+                const gameMoves = window.chessGame.moveHistory;
+                
+                // Go through all moves in the game
+                for (let i = 0; i < gameMoves.length; i++) {
+                    const moveNotation = gameMoves[i];
+                    const player = i % 2 === 0 ? 'white' : 'black';
+                    
+                    // Find this move in our database
+                    for (const moveKey in this.moveDatabase) {
+                        if (moveKey.endsWith(`|${moveNotation}`) && this.moveDatabase[moveKey].player === player) {
+                            const moveData = this.moveDatabase[moveKey];
+                            
+                            // Update win/loss/draw count
+                            if (!winner) {
+                                moveData.draws++;
+                            } else if (player === winner) {
+                                moveData.wins++;
+                            } else {
+                                moveData.losses++;
+                            }
+                            
+                            // Update rating based on result
+                            // Update rating based on result
+                            const expectedScore = this.getExpectedScore(moveData.rating, 1200);
+                            let actualScore;
+                            
+                            if (!winner) {
+                                actualScore = 0.5; // Draw
+                            } else if (player === winner) {
+                                actualScore = 1.0; // Win
+                            } else {
+                                actualScore = 0.0; // Loss
+                            }
+                            
+                            // ELO rating adjustment
+                            moveData.rating += K * (actualScore - expectedScore);
+                            
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            /**
+             * Calculate expected score based on ELO ratings
+             */
+            getExpectedScore(ratingA, ratingB) {
+                return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+            }
+            
+            /**
+             * Evaluate a move
+             */
+            evaluateMove(move, player) {
+                // Simple evaluation
+                let score = 0;
+                const piece = window.chessGame.board[move.from.row][move.from.col];
+                if (!piece) return 0;
+                
+                // Bonus for captures
+                const targetPiece = window.chessGame.board[move.to.row][move.to.col];
+                if (targetPiece) {
+                    score += window.chessGame.pieceValues[targetPiece.type] || 0;
+                }
+                
+                // Bonus for center control
+                const centerDistance = Math.abs(move.to.row - 3.5) + Math.abs(move.to.col - 3.5);
+                score += (4 - centerDistance) * 5;
+                
+                // Check if move creates a check
+                const originalTarget = window.chessGame.board[move.to.row][move.to.col];
+                window.chessGame.board[move.to.row][move.to.col] = piece;
+                window.chessGame.board[move.from.row][move.from.col] = null;
+                
+                const opponentColor = player === 'white' ? 'black' : 'white';
+                const createsCheck = window.chessGame.isInCheck(opponentColor);
+                
+                // Restore board
+                window.chessGame.board[move.from.row][move.from.col] = piece;
+                window.chessGame.board[move.to.row][move.to.col] = originalTarget;
+                
+                if (createsCheck) {
+                    score += 50;
+                }
+                
+                return score;
+            }
+            
+            /**
+             * Convert a move to notation
+             */
+            getMoveNotation(move) {
+                const files = 'abcdefgh';
+                const fromFile = files[move.from.col];
+                const fromRank = 8 - move.from.row;
+                const toFile = files[move.to.col];
+                const toRank = 8 - move.to.row;
+                
+                return `${fromFile}${fromRank}${toFile}${toRank}`;
+            }
+            
+            /**
+             * Parse move notation into a move object
+             */
+            parseNotation(notation) {
+                if (notation.length !== 4) return null;
+                
+                const files = 'abcdefgh';
+                const fromCol = files.indexOf(notation[0]);
+                const fromRow = 8 - parseInt(notation[1]);
+                const toCol = files.indexOf(notation[2]);
+                const toRow = 8 - parseInt(notation[3]);
+                
+                if (fromCol < 0 || fromRow < 0 || toCol < 0 || toRow < 0) return null;
+                if (fromCol > 7 || fromRow > 7 || toCol > 7 || toRow > 7) return null;
+                
+                return {
+                    from: { row: fromRow, col: fromCol },
+                    to: { row: toRow, col: toCol }
+                };
+            }
+            
+            /**
+             * Load knowledge from localStorage
+             */
+            loadKnowledge() {
+                try {
+                    // Load move database
+                    const savedMoves = localStorage.getItem('chess_arn_move_database');
+                    if (savedMoves) {
+                        this.moveDatabase = JSON.parse(savedMoves);
+                        this.log(`Loaded ${Object.keys(this.moveDatabase).length} moves from database`);
+                    }
+                    
+                    // Load position database
+                    const savedPositions = localStorage.getItem('chess_arn_position_database');
+                    if (savedPositions) {
+                        this.positionDatabase = JSON.parse(savedPositions);
+                        this.log(`Loaded ${Object.keys(this.positionDatabase).length} positions from database`);
+                    }
+                    
+                    // Load statistics
+                    const savedStats = localStorage.getItem('chess_arn_stats');
+                    if (savedStats) {
+                        const stats = JSON.parse(savedStats);
+                        
+                        // Copy stats but handle Set objects specially
+                        this.stats.whiteWins = stats.whiteWins || 0;
+                        this.stats.blackWins = stats.blackWins || 0;
+                        this.stats.draws = stats.draws || 0;
+                        this.stats.discoveries = stats.discoveries || [];
+                        this.stats.explorationMilestones = stats.explorationMilestones || [];
+                        
+                        // Convert uniqueMoves and uniquePositions back to Sets
+                        if (stats.uniqueMoves && Array.isArray(stats.uniqueMoves)) {
+                            this.stats.uniqueMoves = new Set(stats.uniqueMoves);
+                        }
+                        
+                        if (stats.uniquePositions && Array.isArray(stats.uniquePositions)) {
+                            this.stats.uniquePositions = new Set(stats.uniquePositions);
+                        }
+                        
+                        this.gameCount = stats.whiteWins + stats.blackWins + stats.draws;
+                        this.log(`Loaded statistics from ${this.gameCount} games`);
+                    }
+                    
+                    // Load position visit counts
+                    const savedVisits = localStorage.getItem('chess_arn_position_visits');
+                    if (savedVisits) {
+                        this.positionVisitCounts = JSON.parse(savedVisits);
+                    }
+                    
+                } catch (error) {
+                    this.log(`Error loading knowledge: ${error.message}`);
+                    console.error(error);
+                }
+            }
+            
+            /**
+             * Save knowledge to localStorage
+             */
+            saveKnowledge() {
+                try {
+                    // Save move database
+                    localStorage.setItem('chess_arn_move_database', JSON.stringify(this.moveDatabase));
+                    
+                    // Save position database
+                    localStorage.setItem('chess_arn_position_database', JSON.stringify(this.positionDatabase));
+                    
+                    // Save statistics (convert Sets to Arrays for JSON)
+                    const statsToSave = {...this.stats};
+                    if (this.stats.uniqueMoves instanceof Set) {
+                        statsToSave.uniqueMoves = Array.from(this.stats.uniqueMoves);
+                    } else {
+                        statsToSave.uniqueMoves = [];
+                    }
+                    
+                    if (this.stats.uniquePositions instanceof Set) {
+                        statsToSave.uniquePositions = Array.from(this.stats.uniquePositions);
+                    } else {
+                        statsToSave.uniquePositions = [];
+                    }
+                    
+                    localStorage.setItem('chess_arn_stats', JSON.stringify(statsToSave));
+                    
+                    // Save position visit counts
+                    localStorage.setItem('chess_arn_position_visits', JSON.stringify(this.positionVisitCounts));
+                    
+                    this.log(`Saved knowledge: ${Object.keys(this.moveDatabase).length} moves, ${Object.keys(this.positionDatabase).length} positions`);
+                } catch (error) {
+                    this.log(`Error saving knowledge: ${error.message}`);
+                    console.error(error);
+                    
+                    // If storage is full, try to export to file
+                    if (error.name === 'QuotaExceededError') {
+                        this.exportToFile();
+                    }
+                }
+            }
+            
+            /**
+             * Export knowledge to a file
+             */
+            exportToFile() {
+                try {
+                    // Convert Sets to Arrays for JSON
+                    const statsToExport = {...this.stats};
+                    statsToExport.uniqueMoves = Array.from(this.stats.uniqueMoves);
+                    statsToExport.uniquePositions = Array.from(this.stats.uniquePositions);
+                    
+                    const data = {
+                        moveDatabase: this.moveDatabase,
+                        positionDatabase: this.positionDatabase,
+                        stats: statsToExport,
+                        positionVisitCounts: this.positionVisitCounts,
+                        timestamp: Date.now()
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `chess_arn_knowledge_${Date.now()}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    this.log('Knowledge exported to file');
+                } catch (error) {
+                    this.log(`Error exporting knowledge: ${error.message}`);
+                    console.error(error);
+                }
+            }
+            
+            /**
+             * Calculate position coverage percentage
+             */
+            calculatePositionCoverage() {
+                // Estimate total possible positions in early/mid game
+                const estimatedTotalPositions = 10000; // This is just a rough estimate
+                const exploredPositions = this.stats.uniquePositions.size;
+                
+                return Math.min(100, Math.round((exploredPositions / estimatedTotalPositions) * 100));
+            }
+            
+            /**
+             * Update the UI with current state
+             */
+            updateUI() {
+                // Update game statistics
+                document.getElementById('games-played').textContent = this.gameCount;
+                document.getElementById('positions-learned').textContent = this.stats.uniquePositions.size;
+                document.getElementById('unique-moves').textContent = this.stats.uniqueMoves.size;
+                document.getElementById('position-coverage').textContent = `${this.calculatePositionCoverage()}%`;
+                document.getElementById('white-wins').textContent = this.stats.whiteWins;
+                document.getElementById('black-wins').textContent = this.stats.blackWins;
+                
+                // Update exploration level
+                document.getElementById('exploration-level').textContent = 
+                    `${Math.round(this.explorationRate * 100)}% (${this.explorationPhase})`;
+                document.getElementById('exploration-progress').style.width = `${this.explorationRate * 100}%`;
+                
+                // Update learning depth
+                document.getElementById('learning-depth').textContent = this.learningDepth;
+                document.getElementById('learning-progress').style.width = `${this.learningDepth * 10}%`;
+            }
+            
+            /**
+             * Add a log entry
+             */
+            log(message, debug = false) {
+                console.log(`[Chess ARN] ${message}`);
+                
+                // Don't add debug messages to UI
+                if (debug) return;
+                
+                const logContainer = document.getElementById('log-container');
+                if (!logContainer) return;
+                
+                const now = new Date();
+                const timestamp = now.toTimeString().substring(0, 8);
+                
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
+                
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+                
+                // Limit log entries
+                while (logContainer.children.length > 100) {
+                    logContainer.removeChild(logContainer.firstChild);
+                }
+            }
+        }
+        
+        // Initialize the chess game and ARN when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM loaded, initializing chess system");
+            
+            // Create the chess game
+            window.chessGame = new SimpleChess();
+            
+            // Create the ARN
+            window.chessARN = new ChessARN();
+            
+            // Set up event listeners
+            document.getElementById('start-learning').addEventListener('click', () => {
+                console.log("Start learning clicked");
+                window.chessARN.start();
+            });
+            
+            document.getElementById('pause-learning').addEventListener('click', () => {
+                console.log("Pause learning clicked");
+                window.chessARN.pause();
+            });
+            
+            document.getElementById('stop-learning').addEventListener('click', () => {
+                console.log("Stop learning clicked");
+                window.chessARN.stop();
+            });
+            
+            document.getElementById('single-move').addEventListener('click', () => {
+                console.log("Single move clicked");
+                window.chessARN.makeSingleMove();
+            });
+            
+            document.getElementById('game-speed').addEventListener('change', (e) => {
+                const speed = parseInt(e.target.value);
+                console.log("Speed changed to", speed);
+                window.chessARN.options.gameDelay = speed;
+                
+                // If running, restart with new speed
+                if (window.chessARN.isRunning && !window.chessARN.isPaused) {
+                    clearInterval(window.chessARN.gameInterval);
+                    window.chessARN.gameInterval = setInterval(() => window.chessARN.playNextMove(), speed);
+                }
+            });
+            
+            // Exploration rate slider
+            const explorationSlider = document.getElementById('exploration-rate');
+            explorationSlider.addEventListener('input', (e) => {
+                const rate = parseInt(e.target.value) / 100;
+                console.log("Exploration rate changed to", rate);
+                window.chessARN.setExplorationRate(rate);
+                
+                // Update description
+                const descriptionElement = document.getElementById('exploration-description');
+                if (rate === 0) {
+                    descriptionElement.textContent = "Always plays what it believes is the strongest move. No learning of new strategies.";
+                } else if (rate < 0.2) {
+                    descriptionElement.textContent = "Primarily focuses on known strong moves with minimal exploration.";
+                } else if (rate < 0.4) {
+                    descriptionElement.textContent = "Plays competitively while occasionally trying new ideas.";
+                } else if (rate < 0.6) {
+                    descriptionElement.textContent = "Balances finding the best moves with exploring new possibilities.";
+                } else if (rate < 0.8) {
+                    descriptionElement.textContent = "Actively explores the game space, trying many different moves.";
+                } else if (rate < 1) {
+                    descriptionElement.textContent = "Highly experimental play, frequently trying unusual moves.";
+                } else {
+                    descriptionElement.textContent = "Pure exploration mode. Will eventually 'quit' once it has explored everything.";
+                }
+            });
+            
+            // Log initialization
+            window.chessARN.log('Chess ARN initialized and ready to learn');
+            window.chessARN.log('This system will explore ALL possible moves to build comprehensive knowledge');
+            
+            console.log("Chess system initialization complete");
+        });
+    </script>
+</body>
+</html>

@@ -62,6 +62,47 @@ export class LearningEaseManager {
         this.playerPatternDatabase = {};
     }
 
+    // Add to learningeasemanager.js:
+cleanupOldData() {
+    const now = Date.now();
+    const ninetyDaysAgo = now - (90 * 24 * 60 * 60 * 1000); // 90 days in milliseconds
+    
+    // Check if we need to reset data
+    const lastPlayedDate = localStorage.getItem('chess_last_played_date');
+    if (lastPlayedDate && parseInt(lastPlayedDate) < ninetyDaysAgo) {
+        console.log("Data is older than 90 days, resetting learning data");
+        this.resetLearningData();
+    }
+    
+    // Update last played date
+    localStorage.setItem('chess_last_played_date', now.toString());
+    
+    // Also clean up any individual old entries
+    for (const pattern in this.playerPatternDatabase) {
+        if (this.playerPatternDatabase[pattern].lastSeen < ninetyDaysAgo) {
+            delete this.playerPatternDatabase[pattern];
+        }
+    }
+    
+    // Save the cleaned data
+    this.saveMoveBuckets();
+}
+
+// Add this method to reset learning data
+resetLearningData() {
+    this.moveBuckets = {};
+    for (let level = 1; level <= 8; level++) {
+        this.moveBuckets[level] = {};
+    }
+    this.counterStrategies = {};
+    this.playerPatternDatabase = {};
+    this.playerMoveHistory = [];
+    
+    // Save the reset data
+    this.saveMoveBuckets();
+    console.log("Learning data has been reset");
+}
+
     /**
      * Load settings from localStorage
      */
