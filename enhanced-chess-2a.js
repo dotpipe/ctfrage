@@ -8,7 +8,7 @@ import { LearningEaseManager } from './learningeasemanager.js';
 import { MoveSequenceAnalyzer } from './movesequenceanalyzer.js';
 import { PieceDepthChart } from './moveanalyzer.js';
 import { CounterMovesManager } from './countermovesmanager.js';
-
+import { AdaptiveAIManager } from 'adaptiveaimanager.js'
 
 // In your chess game initialization
 document.addEventListener('apply-counter-move', (event) => {
